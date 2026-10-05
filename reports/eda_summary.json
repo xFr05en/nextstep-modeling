@@ -1,0 +1,248 @@
+{
+  "rows": 149999,
+  "default_rate": 0.0668,
+  "target_corr": {
+    "RevolvingUtilizationOfUnsecuredLines": {
+      "pearson": 0.2816,
+      "spearman": 0.2411
+    },
+    "age": {
+      "pearson": -0.1154,
+      "spearman": -0.117
+    },
+    "NumberOfTime30-59DaysPastDueNotWorse": {
+      "pearson": 0.2746,
+      "spearman": 0.2514
+    },
+    "NumberOfTime60-89DaysPastDueNotWorse": {
+      "pearson": 0.2681,
+      "spearman": 0.2683
+    },
+    "NumberOfTimes90DaysLate": {
+      "pearson": 0.3145,
+      "spearman": 0.3354
+    },
+    "DebtRatio": {
+      "pearson": -0.0022,
+      "spearman": 0.0583
+    },
+    "MonthlyIncome": {
+      "pearson": -0.0197,
+      "spearman": -0.067
+    },
+    "NumberOfOpenCreditLinesAndLoans": {
+      "pearson": -0.0297,
+      "spearman": -0.0386
+    },
+    "NumberRealEstateLoansOrLines": {
+      "pearson": -0.007,
+      "spearman": -0.0341
+    },
+    "NumberOfDependents": {
+      "pearson": 0.0461,
+      "spearman": 0.046
+    },
+    "pastdue_special_code": {
+      "pearson": 0.0814,
+      "spearman": 0.0814
+    },
+    "income_missing": {
+      "pearson": -0.0213,
+      "spearman": -0.0213
+    },
+    "income_zero": {
+      "pearson": -0.0111,
+      "spearman": -0.0111
+    },
+    "util_outlier": {
+      "pearson": 0.0006,
+      "spearman": 0.0006
+    }
+  },
+  "direction_check": {
+    "RevolvingUtilizationOfUnsecuredLines": {
+      "yaml_monotone": 1,
+      "spearman_sign": 1,
+      "binned_rate_pct": [
+        2.52,
+        1.35,
+        1.42,
+        1.91,
+        2.37,
+        3.47,
+        5.21,
+        8.75,
+        16.44,
+        23.4
+      ],
+      "reversals": 1,
+      "consistent": true
+    },
+    "age": {
+      "yaml_monotone": 0,
+      "spearman_sign": -1,
+      "binned_rate_pct": [
+        11.36,
+        9.59,
+        8.64,
+        8.14,
+        7.7,
+        6.58,
+        4.97,
+        3.75,
+        2.67,
+        2.16
+      ],
+      "reversals": 0,
+      "consistent": true
+    },
+    "NumberOfTime30-59DaysPastDueNotWorse": {
+      "yaml_monotone": 1,
+      "spearman_sign": 1,
+      "binned_rate_pct": [
+        4.0,
+        15.03,
+        26.51,
+        39.26
+      ],
+      "reversals": 0,
+      "consistent": true
+    },
+    "NumberOfTime60-89DaysPastDueNotWorse": {
+      "yaml_monotone": 1,
+      "spearman_sign": 1,
+      "binned_rate_pct": [
+        5.1,
+        31.01,
+        50.18,
+        58.64
+      ],
+      "reversals": 0,
+      "consistent": true
+    },
+    "NumberOfTimes90DaysLate": {
+      "yaml_monotone": 1,
+      "spearman_sign": 1,
+      "binned_rate_pct": [
+        4.63,
+        33.66,
+        49.9,
+        61.68
+      ],
+      "reversals": 0,
+      "consistent": true
+    },
+    "DebtRatio": {
+      "yaml_monotone": 1,
+      "spearman_sign": 1,
+      "binned_rate_pct": [
+        4.9,
+        6.93,
+        6.32,
+        5.95,
+        5.19,
+        5.55,
+        6.44,
+        7.47,
+        9.41,
+        11.73
+      ],
+      "reversals": 3,
+      "consistent": true
+    },
+    "MonthlyIncome": {
+      "yaml_monotone": -1,
+      "spearman_sign": -1,
+      "binned_rate_pct": [
+        8.44,
+        9.67,
+        9.11,
+        8.09,
+        7.33,
+        6.68,
+        5.93,
+        5.11,
+        4.52,
+        4.49
+      ],
+      "reversals": 1,
+      "consistent": true
+    },
+    "NumberOfOpenCreditLinesAndLoans": {
+      "yaml_monotone": 0,
+      "spearman_sign": -1,
+      "binned_rate_pct": [
+        10.7,
+        6.4,
+        6.33,
+        5.54,
+        5.24,
+        5.85,
+        5.96,
+        5.96,
+        6.43,
+        6.91
+      ],
+      "reversals": 4,
+      "consistent": true
+    },
+    "NumberRealEstateLoansOrLines": {
+      "yaml_monotone": 0,
+      "spearman_sign": -1,
+      "binned_rate_pct": [
+        8.31,
+        5.25,
+        5.6,
+        6.7,
+        11.47
+      ],
+      "reversals": 3,
+      "consistent": true
+    },
+    "NumberOfDependents": {
+      "yaml_monotone": 0,
+      "spearman_sign": 1,
+      "binned_rate_pct": [
+        5.86,
+        7.35,
+        8.11,
+        8.83,
+        10.28
+      ],
+      "reversals": 0,
+      "consistent": true
+    }
+  },
+  "missing_pct": {
+    "RevolvingUtilizationOfUnsecuredLines": 0.16,
+    "NumberOfTime30-59DaysPastDueNotWorse": 0.18,
+    "NumberOfTime60-89DaysPastDueNotWorse": 0.18,
+    "NumberOfTimes90DaysLate": 0.18,
+    "DebtRatio": 20.91,
+    "MonthlyIncome": 19.82,
+    "NumberOfDependents": 2.62
+  },
+  "thin_filer": {
+    "share": 0.0771,
+    "rows": 11564,
+    "default_rate_thin": 0.1293,
+    "default_rate_others": 0.0616
+  },
+  "high_feature_corr_pairs": [
+    [
+      "DebtRatio",
+      "NumberOfOpenCreditLinesAndLoans",
+      0.406
+    ],
+    [
+      "DebtRatio",
+      "NumberRealEstateLoansOrLines",
+      0.606
+    ],
+    [
+      "NumberOfOpenCreditLinesAndLoans",
+      "NumberRealEstateLoansOrLines",
+      0.473
+    ]
+  ]
+}
