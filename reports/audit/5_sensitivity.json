@@ -1,0 +1,72 @@
+{
+  "latent_r": {
+    "0.3": {
+      "thin_auc_gain": 0.0566,
+      "thin_auc_gain_std": 0.0081,
+      "auc": 0.9132,
+      "thin_auc": 0.9034,
+      "thin_share": 0.0771,
+      "thin_default_rate": 0.1293,
+      "noise_rounds": 0,
+      "observed_pearson_range": [
+        -0.245,
+        -0.1588
+      ]
+    },
+    "0.35": {
+      "thin_auc_gain": 0.0705,
+      "thin_auc_gain_std": 0.0084,
+      "auc": 0.9267,
+      "thin_auc": 0.9172,
+      "thin_share": 0.0771,
+      "thin_default_rate": 0.1293,
+      "noise_rounds": 0,
+      "observed_pearson_range": [
+        -0.273,
+        -0.1764
+      ]
+    },
+    "0.5": {
+      "thin_auc_gain": 0.1079,
+      "thin_auc_gain_std": 0.0111,
+      "auc": 0.9599,
+      "thin_auc": 0.9547,
+      "thin_share": 0.0771,
+      "thin_default_rate": 0.1293,
+      "noise_rounds": 0,
+      "observed_pearson_range": [
+        -0.3604,
+        -0.2234
+      ]
+    }
+  },
+  "thin_definition": {
+    "<= 1 lines": {
+      "thin_auc_gain": 0.0914,
+      "thin_auc_gain_std": 0.0117,
+      "auc": 0.9268,
+      "thin_auc": 0.8966,
+      "thin_share": 0.0405,
+      "thin_default_rate": 0.1656,
+      "rule": "NumberOfOpenCreditLinesAndLoans <= 1 and NumberRealEstateLoansOrLines == 0"
+    },
+    "<= 2 lines": {
+      "thin_auc_gain": 0.0705,
+      "thin_auc_gain_std": 0.0084,
+      "auc": 0.9267,
+      "thin_auc": 0.9172,
+      "thin_share": 0.0771,
+      "thin_default_rate": 0.1293,
+      "rule": "NumberOfOpenCreditLinesAndLoans <= 2 and NumberRealEstateLoansOrLines == 0"
+    },
+    "<= 3 lines": {
+      "thin_auc_gain": 0.0621,
+      "thin_auc_gain_std": 0.0063,
+      "auc": 0.9267,
+      "thin_auc": 0.9231,
+      "thin_share": 0.1182,
+      "thin_default_rate": 0.1116,
+      "rule": "NumberOfOpenCreditLinesAndLoans <= 3 and NumberRealEstateLoansOrLines == 0"
+    }
+  }
+}

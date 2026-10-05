@@ -1,0 +1,78 @@
+{
+  "age": {
+    "groups": {
+      "under_30": {
+        "n": 8820,
+        "default_rate": 0.1173,
+        "approval_rate": 0.737,
+        "approval_ci95": [
+          0.7278,
+          0.7462
+        ],
+        "approval_if_repaid": 0.8136,
+        "approval_if_defaulted": 0.1604,
+        "di_ratio": 0.8125
+      },
+      "30_to_49": {
+        "n": 57560,
+        "default_rate": 0.0906,
+        "approval_rate": 0.8041,
+        "approval_ci95": [
+          0.8008,
+          0.8073
+        ],
+        "approval_if_repaid": 0.865,
+        "approval_if_defaulted": 0.1926,
+        "di_ratio": 0.8865
+      },
+      "50_plus": {
+        "n": 83619,
+        "default_rate": 0.0452,
+        "approval_rate": 0.9071,
+        "approval_ci95": [
+          0.9051,
+          0.9091
+        ],
+        "approval_if_repaid": 0.9366,
+        "approval_if_defaulted": 0.283,
+        "di_ratio": 1.0
+      }
+    },
+    "min_di_ratio": 0.8125,
+    "eo_gap_repaid": 0.123,
+    "eo_gap_defaulted": 0.1226,
+    "eo_gap": 0.123
+  },
+  "gender": {
+    "groups": {
+      "female": {
+        "n": 75394,
+        "default_rate": 0.067,
+        "approval_rate": 0.8566,
+        "approval_ci95": [
+          0.8541,
+          0.8591
+        ],
+        "approval_if_repaid": 0.9023,
+        "approval_if_defaulted": 0.2205,
+        "di_ratio": 0.9977
+      },
+      "male": {
+        "n": 74605,
+        "default_rate": 0.0667,
+        "approval_rate": 0.8586,
+        "approval_ci95": [
+          0.8561,
+          0.8611
+        ],
+        "approval_if_repaid": 0.9037,
+        "approval_if_defaulted": 0.2262,
+        "di_ratio": 1.0
+      }
+    },
+    "min_di_ratio": 0.9977,
+    "eo_gap_repaid": 0.0014,
+    "eo_gap_defaulted": 0.0057,
+    "eo_gap": 0.0057
+  }
+}

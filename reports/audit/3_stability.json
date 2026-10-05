@@ -1,0 +1,181 @@
+{
+  "pure_seed_max_pd_diff": 0.0,
+  "default": {
+    "variant": "300 trees, lr 0.05",
+    "seeds": [
+      11,
+      22,
+      33
+    ],
+    "near_cutoff_rows": 2345,
+    "near_cutoff_share_of_holdout": 0.0782,
+    "flip_share_near_cutoff": 0.2789,
+    "flip_share_all": 0.0224,
+    "auc_per_model": [
+      0.9261,
+      0.9261,
+      0.9257
+    ],
+    "path_robustness": {
+      "original_475_corner": {
+        "paths": 21469,
+        "deployed_score_median": 560.0,
+        "still_approved_per_model": [
+          0.9567,
+          0.951,
+          0.9573
+        ],
+        "still_approved_mean": 0.955,
+        "still_approved_all_3": 0.9216,
+        "still_approved_all_3_thin": 0.9131
+      },
+      "original_475_minimal": {
+        "paths": 21469,
+        "deployed_score_median": 490.0,
+        "still_approved_per_model": [
+          0.7821,
+          0.7598,
+          0.776
+        ],
+        "still_approved_mean": 0.7726,
+        "still_approved_all_3": 0.597,
+        "still_approved_all_3_thin": 0.6384
+      },
+      "decided_495_corner": {
+        "paths": 21195,
+        "deployed_score_median": 556.0,
+        "still_approved_per_model": [
+          0.9895,
+          0.9819,
+          0.9898
+        ],
+        "still_approved_mean": 0.9871,
+        "still_approved_all_3": 0.9707,
+        "still_approved_all_3_thin": 0.9586
+      },
+      "decided_495_minimal": {
+        "paths": 21195,
+        "deployed_score_median": 509.0,
+        "still_approved_per_model": [
+          0.9644,
+          0.9471,
+          0.9676
+        ],
+        "still_approved_mean": 0.9597,
+        "still_approved_all_3": 0.9063,
+        "still_approved_all_3_thin": 0.8827
+      },
+      "original_minimal_margin_estimate": {
+        "0": {
+          "per_model_mean": 0.7726,
+          "all_3": 0.597
+        },
+        "10": {
+          "per_model_mean": 0.8998,
+          "all_3": 0.7957
+        },
+        "20": {
+          "per_model_mean": 0.9603,
+          "all_3": 0.9112
+        },
+        "30": {
+          "per_model_mean": 0.9846,
+          "all_3": 0.9639
+        },
+        "40": {
+          "per_model_mean": 0.9939,
+          "all_3": 0.9848
+        }
+      }
+    }
+  },
+  "slow": {
+    "variant": "1000 trees, lr 0.02",
+    "seeds": [
+      11,
+      22,
+      33
+    ],
+    "near_cutoff_rows": 2345,
+    "near_cutoff_share_of_holdout": 0.0782,
+    "flip_share_near_cutoff": 0.2896,
+    "flip_share_all": 0.0238,
+    "auc_per_model": [
+      0.9258,
+      0.9257,
+      0.9255
+    ],
+    "path_robustness": {
+      "original_475_corner": {
+        "paths": 21469,
+        "deployed_score_median": 560.0,
+        "still_approved_per_model": [
+          0.9592,
+          0.9523,
+          0.958
+        ],
+        "still_approved_mean": 0.9565,
+        "still_approved_all_3": 0.9238,
+        "still_approved_all_3_thin": 0.9179
+      },
+      "original_475_minimal": {
+        "paths": 21469,
+        "deployed_score_median": 490.0,
+        "still_approved_per_model": [
+          0.7811,
+          0.7575,
+          0.7668
+        ],
+        "still_approved_mean": 0.7685,
+        "still_approved_all_3": 0.5977,
+        "still_approved_all_3_thin": 0.6481
+      },
+      "decided_495_corner": {
+        "paths": 21195,
+        "deployed_score_median": 556.0,
+        "still_approved_per_model": [
+          0.9878,
+          0.9793,
+          0.9891
+        ],
+        "still_approved_mean": 0.9854,
+        "still_approved_all_3": 0.968,
+        "still_approved_all_3_thin": 0.9552
+      },
+      "decided_495_minimal": {
+        "paths": 21195,
+        "deployed_score_median": 509.0,
+        "still_approved_per_model": [
+          0.9566,
+          0.9351,
+          0.96
+        ],
+        "still_approved_mean": 0.9506,
+        "still_approved_all_3": 0.8907,
+        "still_approved_all_3_thin": 0.8769
+      },
+      "original_minimal_margin_estimate": {
+        "0": {
+          "per_model_mean": 0.7685,
+          "all_3": 0.5977
+        },
+        "10": {
+          "per_model_mean": 0.8909,
+          "all_3": 0.7833
+        },
+        "20": {
+          "per_model_mean": 0.951,
+          "all_3": 0.8939
+        },
+        "30": {
+          "per_model_mean": 0.978,
+          "all_3": 0.9491
+        },
+        "40": {
+          "per_model_mean": 0.9901,
+          "all_3": 0.9758
+        }
+      }
+    }
+  }
+}
