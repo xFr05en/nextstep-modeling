@@ -1,0 +1,303 @@
+version: '0.1'
+author: 김원빈
+date: '2026-10-05'
+conventions:
+  target: SeriousDlqin2yrs
+  model_output: probability_of_default
+  monotone: +1 = feature up -> PD up; -1 = feature up -> PD down; 0 = none
+  months_per_step: team assumption, subject to sensitivity analysis
+classes:
+  ACTIONABLE:
+    label_ko: 조치 가능
+    label_en: Actionable
+    recourse: 승인 경로에 포함
+    recourse_en: Included in approval paths
+  CONDITIONAL:
+    label_ko: 조건부 조치 가능
+    label_en: Conditionally actionable
+    recourse: 포함하되 높은 비용 부여
+    recourse_en: Included with a high cost
+  TIME_ONLY:
+    label_ko: 시간 의존
+    label_en: Time-dependent
+    recourse: 포함 시 기간만 반영, 행동 권유 문구 사용 금지
+    recourse_en: If included, reflect duration only; do not phrase as an action
+  NON_DECREASING:
+    label_ko: 감소 불가
+    label_en: Non-decreasing
+    recourse: DiCE에서 고정
+    recourse_en: Fixed in DiCE
+  IMMUTABLE:
+    label_ko: 불변
+    label_en: Immutable
+    recourse: DiCE에서 고정, 거절 사유에서 '참고(변경 불가)'로 표기
+    recourse_en: Fixed in DiCE; shown as 'reference (not changeable)' in rejection reasons
+  NOT_RECOMMENDED:
+    label_ko: 권장 불가
+    label_en: Not recommended
+    recourse: DiCE에서 고정
+    recourse_en: Fixed in DiCE
+features:
+  RevolvingUtilizationOfUnsecuredLines:
+    label_ko: 리볼빙 한도 사용률
+    label_en: Revolving credit utilization rate
+    source: gmsc
+    actionability: ACTIONABLE
+    direction: decrease
+    step: 0.05
+    bounds:
+    - 0.0
+    - 10.0
+    difficulty: 2
+    months_per_step: 1.0
+    monotone: 1
+    protected: false
+    dice_vary: true
+  age:
+    label_ko: 연령
+    label_en: Age
+    source: gmsc
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: true
+    dice_vary: false
+  NumberOfTime30-59DaysPastDueNotWorse:
+    label_ko: 30~59일 연체 횟수(최근 2년)
+    label_en: Times 30 to 59 days past due (last 2 years)
+    source: gmsc
+    actionability: NON_DECREASING
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 1
+    protected: false
+    dice_vary: false
+  DebtRatio:
+    label_ko: 부채비율(월 부채상환+생활비/월소득)
+    label_en: Debt ratio (monthly debt payments + living costs / monthly income)
+    source: gmsc
+    actionability: CONDITIONAL
+    direction: decrease
+    step: 0.05
+    bounds:
+    - 0.0
+    - null
+    difficulty: 3
+    months_per_step: 3.0
+    monotone: 1
+    protected: false
+    dice_vary: true
+  MonthlyIncome:
+    label_ko: 월 소득
+    label_en: Monthly income
+    source: gmsc
+    actionability: CONDITIONAL
+    direction: increase
+    step: 5%
+    bounds:
+    - 0.0
+    - null
+    difficulty: 3
+    months_per_step: 6.0
+    monotone: -1
+    protected: false
+    dice_vary: true
+  NumberOfOpenCreditLinesAndLoans:
+    label_ko: 보유 대출·신용한도 수
+    label_en: Number of open loans and credit lines
+    source: gmsc
+    actionability: NOT_RECOMMENDED
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false
+  NumberOfTimes90DaysLate:
+    label_ko: 90일 이상 연체 횟수
+    label_en: Times 90+ days late
+    source: gmsc
+    actionability: NON_DECREASING
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 1
+    protected: false
+    dice_vary: false
+  NumberRealEstateLoansOrLines:
+    label_ko: 부동산 담보대출 수
+    label_en: Number of real estate loans
+    source: gmsc
+    actionability: NOT_RECOMMENDED
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false
+  NumberOfTime60-89DaysPastDueNotWorse:
+    label_ko: 60~89일 연체 횟수(최근 2년)
+    label_en: Times 60 to 89 days past due (last 2 years)
+    source: gmsc
+    actionability: NON_DECREASING
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 1
+    protected: false
+    dice_vary: false
+  NumberOfDependents:
+    label_ko: 부양가족 수
+    label_en: Number of dependents
+    source: gmsc
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false
+  telecom_ontime_rate:
+    label_ko: 통신요금 정시납부율(최근 12개월)
+    label_en: Phone bill on-time payment rate (last 12 months)
+    source: simulated
+    actionability: ACTIONABLE
+    direction: increase
+    step: 0.0833
+    bounds:
+    - 0.0
+    - 1.0
+    difficulty: 1
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: true
+  utility_ontime_rate:
+    label_ko: 공과금(전기·가스·수도) 정시납부율(최근 12개월)
+    label_en: Utility bill (electricity, gas, water) on-time rate (last 12 months)
+    source: simulated
+    actionability: ACTIONABLE
+    direction: increase
+    step: 0.0833
+    bounds:
+    - 0.0
+    - 1.0
+    difficulty: 1
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: true
+  telecom_tenure_months:
+    label_ko: 통신사 가입 유지 기간(개월)
+    label_en: Months with current phone carrier
+    source: simulated
+    actionability: TIME_ONLY
+    direction: increase
+    step: 1
+    bounds:
+    - 0
+    - 240
+    difficulty: 1
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: true
+  insurance_paid_months:
+    label_ko: 건강보험·국민연금 납부 개월수(최근 24개월)
+    label_en: Health insurance / national pension payment months (last 24 months)
+    source: simulated
+    actionability: TIME_ONLY
+    direction: increase
+    step: 1
+    bounds:
+    - 0
+    - 24
+    difficulty: 2
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: true
+  autopay_ratio:
+    label_ko: 정기 청구서 자동이체 등록 비율
+    label_en: Share of recurring bills on autopay
+    source: simulated
+    actionability: ACTIONABLE
+    direction: increase
+    step: 0.2
+    bounds:
+    - 0.0
+    - 1.0
+    difficulty: 1
+    months_per_step: 0.5
+    monotone: -1
+    protected: false
+    dice_vary: true
+  pastdue_special_code:
+    label_ko: 연체 횟수 특수코드(96/98) 표시
+    label_en: Past-due special code (96/98) flag
+    source: derived
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false
+  income_missing:
+    label_ko: 월 소득 결측 표시
+    label_en: Monthly income missing flag
+    source: derived
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false
+  income_zero:
+    label_ko: 월 소득 0 표시
+    label_en: Monthly income equals zero flag
+    source: derived
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false
+  util_outlier:
+    label_ko: 리볼빙 사용률 이상치(10 초과) 표시
+    label_en: Revolving utilization outlier (above 10) flag
+    source: derived
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: false
+    dice_vary: false

@@ -1,0 +1,41 @@
+{
+  "rows_raw": 150000,
+  "duplicate_rows_raw": 609,
+  "pastdue_special_code_rows": 269,
+  "income_missing_rows": 29731,
+  "income_zero_rows": 1634,
+  "debtratio_set_missing_rows": 31365,
+  "util_outlier_rows": 241,
+  "util_between_1_and_threshold_rows": 3080,
+  "age_dropped_rows": 1,
+  "duplicate_rows_after_cleaning": 1925,
+  "rows_clean": 149999,
+  "default_rate": 0.0668,
+  "missing_pct_after": {
+    "RevolvingUtilizationOfUnsecuredLines": 0.16,
+    "NumberOfTime30-59DaysPastDueNotWorse": 0.18,
+    "DebtRatio": 20.91,
+    "MonthlyIncome": 19.82,
+    "NumberOfTimes90DaysLate": 0.18,
+    "NumberOfTime60-89DaysPastDueNotWorse": 0.18,
+    "NumberOfDependents": 2.62
+  },
+  "default_rate_by_flag": {
+    "pastdue_special_code": {
+      "0": 0.066,
+      "1": 0.5465
+    },
+    "income_missing": {
+      "0": 0.0695,
+      "1": 0.0561
+    },
+    "income_zero": {
+      "0": 0.0671,
+      "1": 0.0404
+    },
+    "util_outlier": {
+      "0": 0.0668,
+      "1": 0.0705
+    }
+  }
+}

@@ -1,0 +1,19 @@
+# Alternative-data simulator settings (final, owned by Wonbin, last updated 2026-10-05)
+seed: 42
+method: gaussian_copula
+# Target: SeriousDlqin2yrs (1 = default). Mission rule: |corr with target| between 0.3 and 0.5.
+target_corr_range: [0.30, 0.50]
+variables:
+  telecom_ontime_rate:   {target_corr: -0.35, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
+  utility_ontime_rate:   {target_corr: -0.35, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
+  telecom_tenure_months: {target_corr: -0.30, marginal: gamma,    params: {shape: 2.0, scale: 24.0}, clip: [0, 240], integer: true}
+  insurance_paid_months: {target_corr: -0.30, marginal: binomial, params: {n: 24, p: 0.75}}
+  autopay_ratio:         {target_corr: -0.30, marginal: discrete, values: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+# Max allowed correlation between any two alternative variables
+max_inter_corr: 0.60
+gender:
+  generate: true
+  p_female: 0.5
+  independent_of_target: true
+thin_filer:
+  rule: "NumberOfOpenCreditLinesAndLoans <= 2 and NumberRealEstateLoansOrLines == 0"

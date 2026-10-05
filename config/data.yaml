@@ -1,0 +1,15 @@
+# GMSC cleaning rules (Step 1). Imputation is NOT done here; it is fit on training folds in src/features.py.
+raw_path: data/raw/cs-training.csv
+processed_path: data/processed/gmsc_clean.csv
+summary_path: reports/data_summary.json
+target: SeriousDlqin2yrs
+id_column: "Unnamed: 0"
+pastdue_columns:
+  - NumberOfTime30-59DaysPastDueNotWorse
+  - NumberOfTime60-89DaysPastDueNotWorse
+  - NumberOfTimes90DaysLate
+pastdue_special_codes: [96, 98]
+util_column: RevolvingUtilizationOfUnsecuredLines
+util_outlier_threshold: 10   # values above this are set to missing; must match actionability.yaml bounds
+min_age: 18                  # rows below this are dropped
+drop_duplicates: false       # duplicates are kept and only counted
