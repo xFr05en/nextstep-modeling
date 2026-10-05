@@ -6,7 +6,7 @@
 
 ## 실행 방법
 
-1. `data/raw/`에 `cs-training.csv`(Kaggle "Give Me Some Credit")를 넣습니다. German Credit(`german.data`)은 보조 데이터셋으로 계획되어 있으나 **아직 사용하지 않습니다**.
+1. `data/raw/`에 `cs-training.csv`(Kaggle "Give Me Some Credit")를 넣습니다. 보조 German Credit 모델용 `german.data`도 같은 위치에 넣습니다 ([UCI 저장소](https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data)에서 내려받음).
 2. 설정: macOS/Linux `bash setup.sh`, Windows `setup.bat`. 이후 `source .venv/bin/activate`.
 3. 파이프라인을 순서대로 실행합니다 (전체 약 4분, 시드 고정):
 
@@ -33,6 +33,12 @@ python notebooks/model_report.py
 ```
 ```bash
 python -m src.actionability_table
+```
+
+5. 선택: German Credit 보조 모델 (GMSC와 별개, 약 20초)
+
+```bash
+python -m src.german
 ```
 
 ## 테스트
@@ -63,7 +69,7 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 | 씬파일러 AUC 향상 ≥ +0.03 | +0.071 |
 | PSI < 0.1 | 0.0005 |
 | 단조 제약으로 인한 AUC 손실 ≤ 0.01 | 0.0001 |
-| pytest: 테스트 10개 이상, 80% 통과 | 테스트 25개, 100% 통과 |
+| pytest: 테스트 10개 이상, 80% 통과 | 테스트 36개, 100% 통과 |
 
 대체 데이터가 실제 결과로부터 시뮬레이션되었으므로 이 수치는 낙관적입니다. 현실적인 기준은 GMSC만 사용한 AUC 0.865입니다. 아래 한계를 참고하십시오.
 
@@ -100,6 +106,8 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 | 5. 모델 비교, 제약, 점수 체계 | `reports/model_report_ko.md` |
 | MLflow 안내 | `reports/mlflow_schema_ko.md` |
 | 조치 가능성 표 | `reports/actionability_table_ko.xlsx` (YAML에서 생성, 직접 수정 금지) |
+| 점검 (경로, 공정성, 안정성, 홀드아웃, 민감도) | `reports/audit_report_ko.md` |
+| German Credit 보조 모델 | `reports/german_report_ko.md` |
 
 모든 보고서는 영어 버전(`_en`)도 있습니다.
 
@@ -111,6 +119,7 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 - 자동이체는 모델 변수지만 경로에는 쓰지 않습니다: 분류 권장 불가(NOT_RECOMMENDED), `dice_vary: false`, 단조 -1. SHAP 거절 사유에서는 자동이체를 조치 가능 항목이 아니라 "참고(변경 불가)"에 표시하여, 설명이 자동이체 설정을 권하지 않도록 하십시오.
 - 모델: `models/final_model.joblib`, 입력 열 19개를 DataFrame으로 받는 파이프라인. `predict_proba[:, 1]`이 PD입니다.
 - 공정성 입력: `gender_female`(시뮬레이션, 보호 속성, 모델 변수 아님), `age`(보호 속성, 모델 변수로 사용). 연령은 사용률, 부양가족 수와 관련됩니다 (EDA와 시뮬레이터 보고서 참고).
+- 실제 성별 점검: `reports/german/oof_predictions.csv`에 German Credit 신청자 1,000명의 out-of-fold PD (XGBoost, LR), 실제 결과, 성별, 연령, 혼인 상태, 외국인 노동자 여부가 있습니다. 기준점은 적용하지 않았으며, UCI 비용 행렬 (손익분기 PD 약 0.167)은 `reports/german_report_ko.md`를 참고하십시오.
 
 **윤제진 (MLflow, Docker, FastAPI, Streamlit)**
 - `reports/mlflow_schema_ko.md`: 실험과 실행 이름, 지표 키, 입력 열, 모델 불러오는 방법. 서빙 모델은 확률을 반환합니다 (1번 열 = PD).
@@ -123,4 +132,8 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 - **상관 규칙은 코퓰라의 잠재 척도에 적용합니다** (5개 변수 모두 0.35). 부도와의 관측 Pearson 상관은 약 0.18~0.27입니다.
 - **PSI는 무작위 폴드를 사용**하므로 구조적으로 0에 가깝습니다. GMSC에는 날짜가 없어 시간에 따른 변화는 검증할 수 없습니다.
 - **정책적 선택은 가정입니다:** 등급 기준, 승인 규칙, 단계당 기간, 난이도는 팀의 가정이며 금융기관의 값이 아닙니다.
-- German Credit은 아직 사용하지 않습니다.
+- German Credit은 별도의 작은 모델이며 (1,000행, 미혼 여성 없음) GMSC와 수치를 비교할 수 없습니다. `reports/german_report_ko.md` 참고.
+
+## 데이터 출처
+
+German Credit: Hofmann, H. (1994). Statlog (German Credit Data) [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5NC77 (CC BY 4.0). GMSC: Kaggle "Give Me Some Credit".

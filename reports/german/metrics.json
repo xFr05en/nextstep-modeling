@@ -1,0 +1,176 @@
+{
+  "lr": {
+    "auc": {
+      "mean": 0.7797,
+      "sd_across_repeats": 0.0067,
+      "fold_min": 0.6968,
+      "fold_max": 0.8439
+    },
+    "ks": {
+      "mean": 0.4688,
+      "sd_across_repeats": 0.0147,
+      "fold_min": 0.3167,
+      "fold_max": 0.6
+    },
+    "brier": {
+      "mean": 0.1688,
+      "sd_across_repeats": 0.0027,
+      "fold_min": 0.1401,
+      "fold_max": 0.2027
+    }
+  },
+  "xgb": {
+    "auc": {
+      "mean": 0.789,
+      "sd_across_repeats": 0.0081,
+      "fold_min": 0.7226,
+      "fold_max": 0.8593
+    },
+    "ks": {
+      "mean": 0.485,
+      "sd_across_repeats": 0.0168,
+      "fold_min": 0.3786,
+      "fold_max": 0.619
+    },
+    "brier": {
+      "mean": 0.1643,
+      "sd_across_repeats": 0.0031,
+      "fold_min": 0.1323,
+      "fold_max": 0.193
+    }
+  },
+  "xgb_unconstrained": {
+    "auc": {
+      "mean": 0.7899,
+      "sd_across_repeats": 0.0097,
+      "fold_min": 0.717,
+      "fold_max": 0.8662
+    },
+    "ks": {
+      "mean": 0.4809,
+      "sd_across_repeats": 0.0175,
+      "fold_min": 0.3905,
+      "fold_max": 0.6381
+    },
+    "brier": {
+      "mean": 0.1636,
+      "sd_across_repeats": 0.0037,
+      "fold_min": 0.1326,
+      "fold_max": 0.1953
+    }
+  },
+  "xgb_minus_lr_auc": {
+    "mean": 0.0093,
+    "sd_across_folds": 0.0181,
+    "share_of_folds_xgb_better": 0.68
+  },
+  "monotone_auc_loss": {
+    "mean": 0.0009,
+    "sd_across_folds": 0.0054
+  },
+  "oof_avg_auc": {
+    "lr": 0.7826,
+    "xgb": 0.7948,
+    "xgb_unconstrained": 0.7962
+  },
+  "rows": 1000,
+  "default_rate": 0.3,
+  "features": {
+    "numeric": [
+      "duration_months",
+      "credit_amount",
+      "installment_rate",
+      "residence_since",
+      "age",
+      "existing_credits",
+      "people_liable"
+    ],
+    "categorical": [
+      "checking_status",
+      "credit_history",
+      "purpose",
+      "savings",
+      "employment_since",
+      "other_debtors",
+      "property",
+      "other_installment_plans",
+      "housing",
+      "job",
+      "telephone"
+    ]
+  },
+  "monotone": {
+    "duration_months": 1,
+    "installment_rate": 1
+  },
+  "cv": {
+    "n_splits": 5,
+    "n_repeats": 10,
+    "seed": 42
+  },
+  "groups": {
+    "sex": {
+      "female": {
+        "rows": 310,
+        "default_rate": 0.3516
+      },
+      "male": {
+        "rows": 690,
+        "default_rate": 0.2768
+      }
+    },
+    "age_band": {
+      "under_30": {
+        "rows": 371,
+        "default_rate": 0.3693
+      },
+      "30_to_49": {
+        "rows": 504,
+        "default_rate": 0.256
+      },
+      "50_plus": {
+        "rows": 125,
+        "default_rate": 0.272
+      }
+    },
+    "foreign_worker": {
+      "no": {
+        "rows": 37,
+        "default_rate": 0.1081
+      },
+      "yes": {
+        "rows": 963,
+        "default_rate": 0.3074
+      }
+    },
+    "personal_status": {
+      "female: divorced/separated/married": {
+        "rows": 310,
+        "default_rate": 0.3516
+      },
+      "male: divorced/separated": {
+        "rows": 50,
+        "default_rate": 0.4
+      },
+      "male: married/widowed": {
+        "rows": 92,
+        "default_rate": 0.2717
+      },
+      "male: single": {
+        "rows": 548,
+        "default_rate": 0.2664
+      }
+    }
+  },
+  "cost_matrix": {
+    "approve_bad": 5,
+    "reject_good": 1
+  },
+  "cost_break_even_pd": 0.1667,
+  "source": {
+    "name": "Statlog (German Credit Data), UCI Machine Learning Repository, dataset id 144",
+    "url": "https://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data",
+    "citation": "Hofmann, H. (1994). Statlog (German Credit Data) [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5NC77",
+    "license": "CC BY 4.0"
+  }
+}
