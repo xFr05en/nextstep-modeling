@@ -188,4 +188,4 @@ The gain clears +0.03 in every case. It grows with the latent correlation, as ex
 
 **Open team items:**
 5. **Grey zone around 475:** decisions within ±30 points flip in 27.9% of cases when the model is retrained, and slower learning does not help. A grey zone for manual review, or averaging several models, was not adopted for now.
-6. **Autopay's class:** it is still ACTIONABLE, whose class rule says "included in approval paths", while `dice_vary` is now false. NOT_RECOMMENDED ("technically changeable but inappropriate to suggest") may describe it better.
+6. **Autopay's class (resolved):** reclassified from ACTIONABLE to NOT_RECOMMENDED, so the class rule ("fixed in DiCE") matches `dice_vary: false`. Monotone stays -1 and it remains a model feature, so the final model is unchanged.

@@ -41,3 +41,12 @@ def test_yaml_consistent_with_other_configs():
     for name, spec in sim_cfg["variables"].items():
         assert FEATURES[name]["source"] == "simulated"
         assert FEATURES[name]["monotone"] == -1 and spec["target_corr"] < 0, name
+
+
+def test_autopay_is_not_recommended_but_still_constrained():
+    """Intentional exception: removed from paths, but monotone -1 is kept so the model is unchanged."""
+    a = FEATURES["autopay_ratio"]
+    assert a["actionability"] == "NOT_RECOMMENDED"
+    assert a["dice_vary"] is False
+    assert a["monotone"] == -1
+    assert "autopay_ratio" in feature_sets()["all"]
