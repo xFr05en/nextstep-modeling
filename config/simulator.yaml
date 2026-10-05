@@ -1,19 +1,49 @@
 # Alternative-data simulator settings (final, owned by Wonbin, last updated 2026-10-05)
 seed: 42
 method: gaussian_copula
-# Target: SeriousDlqin2yrs (1 = default). Mission rule: |corr with target| between 0.3 and 0.5.
+# Target: SeriousDlqin2yrs (1 = default). Charter rule: correlation with the target between 0.3 and 0.5.
+# The rule applies to the copula's LATENT correlation: r(hidden score z, hidden default score T),
+# where T is the truncated-normal liability consistent with the 0/1 target.
+# Observed Pearson and Spearman r with the 0/1 target are reported alongside (expected about 0.18).
 target_corr_range: [0.30, 0.50]
+# Latent score per variable:  z = -(a * T + b * credit_weight * C) + noise * e
+#   a is calibrated so that r(z, T) equals target_corr (the credit part is included in z).
+#   credit_weight scales the global credit_link.b per variable. noise is the starting noise weight.
 variables:
-  telecom_ontime_rate:   {target_corr: -0.35, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
-  utility_ontime_rate:   {target_corr: -0.35, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
-  telecom_tenure_months: {target_corr: -0.30, marginal: gamma,    params: {shape: 2.0, scale: 24.0}, clip: [0, 240], integer: true}
-  insurance_paid_months: {target_corr: -0.30, marginal: binomial, params: {n: 24, p: 0.75}}
-  autopay_ratio:         {target_corr: -0.30, marginal: discrete, values: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
-# Max allowed correlation between any two alternative variables
+  telecom_ontime_rate:   {target_corr: -0.35, credit_weight: 1.0, noise: 1.0, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
+  utility_ontime_rate:   {target_corr: -0.35, credit_weight: 1.0, noise: 1.0, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
+  telecom_tenure_months: {target_corr: -0.35, credit_weight: 0.5, noise: 1.0, marginal: gamma,    params: {shape: 2.0, scale: 24.0}, clip: [0, 240], integer: true, age_cap: true}
+  insurance_paid_months: {target_corr: -0.35, credit_weight: 0.5, noise: 1.0, marginal: binomial, params: {n: 24, p: 0.75}}
+  autopay_ratio:         {target_corr: -0.35, credit_weight: 0.5, noise: 1.0, marginal: discrete, values: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+calibration:
+  tolerance: 0.001      # allowed gap between latent r(z, T) and target_corr
+  a_max: 20.0
+  max_iter: 60
+# Link to existing credit behavior (credit part of the latent score)
+credit_link:
+  b: 0.30                          # main dataset
+  sweep: [0.0, 0.15, 0.30, 0.45]   # trade-off analysis; 0.0 = target-only
+  pastdue_columns:
+    - NumberOfTime30-59DaysPastDueNotWorse
+    - NumberOfTime60-89DaysPastDueNotWorse
+    - NumberOfTimes90DaysLate
+  util_column: RevolvingUtilizationOfUnsecuredLines
+  # Missing handling: special-code rows (96/98, 54.65% default) get the worst past-due rank.
+  # Utilization outliers (>10, set missing in Step 1, 7.05% default ~ average) get a neutral score.
+# Tenure cannot exceed time since this age (months); a logical limit, not a modeled link
+tenure_min_age: 18
+# Max allowed Pearson r between any two alternative variables
 max_inter_corr: 0.60
+# If the two on-time rates exceed the cap, raise both noise weights by this step and recalibrate
+noise_step: 0.1
+noise_max_rounds: 50
 gender:
   generate: true
   p_female: 0.5
   independent_of_target: true
 thin_filer:
   rule: "NumberOfOpenCreditLinesAndLoans <= 2 and NumberRealEstateLoansOrLines == 0"
+outputs:
+  main: data/processed/gmsc_sim.csv
+  target_only: data/processed/gmsc_sim_target_only.csv
+  summary: reports/simulator_summary.json

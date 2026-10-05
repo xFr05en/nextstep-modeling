@@ -42,9 +42,9 @@ All constrained features move in the direction the YAML says. **Debt ratio is th
 | Age | -0.115 | -0.117 |
 | All others | below 0.05 | below 0.07 |
 
-**Important for Step 3:** only one real feature reaches |r| = 0.3. The simulated alternative variables are set to |r| between 0.3 and 0.5, so each of them will be about as strong as, or stronger than, the best real credit feature. This should be stated as a limitation in the final presentation: the size of the thin-filer AUC lift depends on a value we chose, not on observed data.
+**Important for Step 3:** only one real feature reaches an observed |r| of 0.3. Measured the same way, a 0.3 to 0.5 rule would make each simulated variable as strong as the best real credit feature. Resolved in Step 3: the rule is applied to the copula's latent correlation, which gives an observed Pearson r of about 0.18 to 0.27 (see `simulator_report_en.md`).
 
-Pearson r is distorted by extreme values. Debt ratio, for example, has Pearson -0.002 but Spearman +0.058. For Step 3, the team should agree which correlation the 0.3 to 0.5 rule refers to. I recommend Pearson r between the simulated variable and the 0/1 target, measured on the final generated data.
+Pearson r is distorted by extreme values. Debt ratio, for example, has Pearson -0.002 but Spearman +0.058. Step 3 therefore reports latent, Pearson and Spearman correlations for every simulated variable.
 
 ## 4. Relationships between features (Figure 04)
 
@@ -60,6 +60,6 @@ Pearson r is distorted by extreme values. Debt ratio, for example, has Pearson -
 
 ## 6. What this changes for later steps
 
-- **Step 3:** decide the correlation definition (see section 3) before writing the simulator.
+- **Step 3:** correlation definition decided: latent correlation (see section 3).
 - **Step 5:** watch the AUC cost of the debt ratio constraint first. Logistic Regression needs a log transform or cap for debt ratio, income and utilization because of the skew.
 - **Fairness (채민규):** age correlates with utilization and dependents, so removing age alone will not remove age effects.

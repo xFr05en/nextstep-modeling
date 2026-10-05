@@ -301,3 +301,16 @@ features:
     monotone: 0
     protected: false
     dice_vary: false
+  gender_female:
+    label_ko: 성별(여성=1, 시뮬레이션)
+    label_en: Gender (female = 1, simulated)
+    source: simulated
+    actionability: IMMUTABLE
+    direction: none
+    step: null
+    bounds: null
+    difficulty: null
+    months_per_step: null
+    monotone: 0
+    protected: true
+    dice_vary: false

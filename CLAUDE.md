@@ -16,7 +16,7 @@
 ## Decisions (final, owned by Wonbin, last updated 2026-10-05)
 - Alternative variables (5), defined in `config/actionability.yaml`:
   telecom_ontime_rate, utility_ontime_rate, telecom_tenure_months, insurance_paid_months, autopay_ratio.
-- Mission rule: each alternative variable correlates with the target at |r| 0.3 to 0.5. Signs: all negative (higher value = lower default).
+- Mission rule: each alternative variable correlates with the target at |r| 0.3 to 0.5, measured as the copula's latent correlation (hidden score vs. hidden default score). All five set to 0.35. Observed Pearson and Spearman r are reported alongside. Signs: all negative (higher value = lower default).
 - Generator: Gaussian copula (scipy). Seeded. Parameters in a config file, not hard-coded.
 - Gender: simulated binary, independent of the target.
 - Thin-filer proxy: NumberOfOpenCreditLinesAndLoans <= 2 AND NumberRealEstateLoansOrLines == 0. Report the share flagged.

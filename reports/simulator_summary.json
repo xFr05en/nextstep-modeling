@@ -1,0 +1,256 @@
+{
+  "thin_filer_share": 0.0771,
+  "thin_filer_rows": 11564,
+  "main": {
+    "b": 0.3,
+    "noise_rounds": 0,
+    "params": {
+      "telecom_ontime_rate": {
+        "a": 0.332,
+        "b": 0.3,
+        "noise": 1.0
+      },
+      "utility_ontime_rate": {
+        "a": 0.3271,
+        "b": 0.3,
+        "noise": 1.0
+      },
+      "telecom_tenure_months": {
+        "a": 0.3491,
+        "b": 0.15,
+        "noise": 1.0
+      },
+      "insurance_paid_months": {
+        "a": 0.3467,
+        "b": 0.15,
+        "noise": 1.0
+      },
+      "autopay_ratio": {
+        "a": 0.3516,
+        "b": 0.15,
+        "noise": 1.0
+      }
+    },
+    "corr_target_latent": {
+      "telecom_ontime_rate": -0.3498,
+      "utility_ontime_rate": -0.3496,
+      "telecom_tenure_months": -0.3502,
+      "insurance_paid_months": -0.35,
+      "autopay_ratio": -0.3504
+    },
+    "corr_target": {
+      "telecom_ontime_rate": -0.273,
+      "utility_ontime_rate": -0.2726,
+      "telecom_tenure_months": -0.1764,
+      "insurance_paid_months": -0.2233,
+      "autopay_ratio": -0.2025
+    },
+    "corr_target_spearman": {
+      "telecom_ontime_rate": -0.2351,
+      "utility_ontime_rate": -0.2343,
+      "telecom_tenure_months": -0.2089,
+      "insurance_paid_months": -0.2071,
+      "autopay_ratio": -0.2025
+    },
+    "auc_single": {
+      "telecom_ontime_rate": 0.7632,
+      "utility_ontime_rate": 0.7623,
+      "telecom_tenure_months": 0.7415,
+      "insurance_paid_months": 0.7369,
+      "autopay_ratio": 0.7308
+    },
+    "corr_credit_score": {
+      "telecom_ontime_rate": -0.3282,
+      "utility_ontime_rate": -0.3306,
+      "telecom_tenure_months": -0.1763,
+      "insurance_paid_months": -0.2019,
+      "autopay_ratio": -0.1891
+    },
+    "corr_pastdue_sum": {
+      "telecom_ontime_rate": -0.2459,
+      "utility_ontime_rate": -0.2517,
+      "telecom_tenure_months": -0.1284,
+      "insurance_paid_months": -0.157,
+      "autopay_ratio": -0.1412
+    },
+    "corr_utilization": {
+      "telecom_ontime_rate": -0.2686,
+      "utility_ontime_rate": -0.2687,
+      "telecom_tenure_months": -0.1432,
+      "insurance_paid_months": -0.1623,
+      "autopay_ratio": -0.1529
+    },
+    "corr_age": {
+      "telecom_ontime_rate": 0.0918,
+      "utility_ontime_rate": 0.0907,
+      "telecom_tenure_months": 0.0647,
+      "insurance_paid_months": 0.0557,
+      "autopay_ratio": 0.0524
+    },
+    "inter_corr": {
+      "telecom_ontime_rate": {
+        "telecom_ontime_rate": 1.0,
+        "utility_ontime_rate": 0.1916,
+        "telecom_tenure_months": 0.1383,
+        "insurance_paid_months": 0.1524,
+        "autopay_ratio": 0.1488
+      },
+      "utility_ontime_rate": {
+        "telecom_ontime_rate": 0.1916,
+        "utility_ontime_rate": 1.0,
+        "telecom_tenure_months": 0.141,
+        "insurance_paid_months": 0.1561,
+        "autopay_ratio": 0.1446
+      },
+      "telecom_tenure_months": {
+        "telecom_ontime_rate": 0.1383,
+        "utility_ontime_rate": 0.141,
+        "telecom_tenure_months": 1.0,
+        "insurance_paid_months": 0.1272,
+        "autopay_ratio": 0.1219
+      },
+      "insurance_paid_months": {
+        "telecom_ontime_rate": 0.1524,
+        "utility_ontime_rate": 0.1561,
+        "telecom_tenure_months": 0.1272,
+        "insurance_paid_months": 1.0,
+        "autopay_ratio": 0.1339
+      },
+      "autopay_ratio": {
+        "telecom_ontime_rate": 0.1488,
+        "utility_ontime_rate": 0.1446,
+        "telecom_tenure_months": 0.1219,
+        "insurance_paid_months": 0.1339,
+        "autopay_ratio": 1.0
+      }
+    },
+    "gender_female_share": 0.5026,
+    "gender_corr_target": 0.0007
+  },
+  "target_only": {
+    "b": 0.0,
+    "noise_rounds": 0,
+    "params": {
+      "telecom_ontime_rate": {
+        "a": 0.3735,
+        "b": 0.0,
+        "noise": 1.0
+      },
+      "utility_ontime_rate": {
+        "a": 0.3687,
+        "b": 0.0,
+        "noise": 1.0
+      },
+      "telecom_tenure_months": {
+        "a": 0.3735,
+        "b": 0.0,
+        "noise": 1.0
+      },
+      "insurance_paid_months": {
+        "a": 0.3711,
+        "b": 0.0,
+        "noise": 1.0
+      },
+      "autopay_ratio": {
+        "a": 0.376,
+        "b": 0.0,
+        "noise": 1.0
+      }
+    },
+    "corr_target_latent": {
+      "telecom_ontime_rate": -0.3496,
+      "utility_ontime_rate": -0.3495,
+      "telecom_tenure_months": -0.35,
+      "insurance_paid_months": -0.3497,
+      "autopay_ratio": -0.3501
+    },
+    "corr_target": {
+      "telecom_ontime_rate": -0.1876,
+      "utility_ontime_rate": -0.185,
+      "telecom_tenure_months": -0.1526,
+      "insurance_paid_months": -0.1841,
+      "autopay_ratio": -0.1711
+    },
+    "corr_target_spearman": {
+      "telecom_ontime_rate": -0.1724,
+      "utility_ontime_rate": -0.1709,
+      "telecom_tenure_months": -0.176,
+      "insurance_paid_months": -0.1744,
+      "autopay_ratio": -0.1711
+    },
+    "auc_single": {
+      "telecom_ontime_rate": 0.6931,
+      "utility_ontime_rate": 0.6913,
+      "telecom_tenure_months": 0.7035,
+      "insurance_paid_months": 0.6996,
+      "autopay_ratio": 0.695
+    },
+    "corr_credit_score": {
+      "telecom_ontime_rate": -0.0683,
+      "utility_ontime_rate": -0.0697,
+      "telecom_tenure_months": -0.0583,
+      "insurance_paid_months": -0.067,
+      "autopay_ratio": -0.0648
+    },
+    "corr_pastdue_sum": {
+      "telecom_ontime_rate": -0.0708,
+      "utility_ontime_rate": -0.0781,
+      "telecom_tenure_months": -0.0598,
+      "insurance_paid_months": -0.0713,
+      "autopay_ratio": -0.0658
+    },
+    "corr_utilization": {
+      "telecom_ontime_rate": -0.0547,
+      "utility_ontime_rate": -0.0522,
+      "telecom_tenure_months": -0.0448,
+      "insurance_paid_months": -0.0507,
+      "autopay_ratio": -0.0489
+    },
+    "corr_age": {
+      "telecom_ontime_rate": 0.0265,
+      "utility_ontime_rate": 0.0249,
+      "telecom_tenure_months": 0.0343,
+      "insurance_paid_months": 0.0211,
+      "autopay_ratio": 0.0196
+    },
+    "inter_corr": {
+      "telecom_ontime_rate": {
+        "telecom_ontime_rate": 1.0,
+        "utility_ontime_rate": 0.1109,
+        "telecom_tenure_months": 0.1076,
+        "insurance_paid_months": 0.111,
+        "autopay_ratio": 0.1122
+      },
+      "utility_ontime_rate": {
+        "telecom_ontime_rate": 0.1109,
+        "utility_ontime_rate": 1.0,
+        "telecom_tenure_months": 0.108,
+        "insurance_paid_months": 0.1167,
+        "autopay_ratio": 0.1074
+      },
+      "telecom_tenure_months": {
+        "telecom_ontime_rate": 0.1076,
+        "utility_ontime_rate": 0.108,
+        "telecom_tenure_months": 1.0,
+        "insurance_paid_months": 0.1137,
+        "autopay_ratio": 0.1084
+      },
+      "insurance_paid_months": {
+        "telecom_ontime_rate": 0.111,
+        "utility_ontime_rate": 0.1167,
+        "telecom_tenure_months": 0.1137,
+        "insurance_paid_months": 1.0,
+        "autopay_ratio": 0.1171
+      },
+      "autopay_ratio": {
+        "telecom_ontime_rate": 0.1122,
+        "utility_ontime_rate": 0.1074,
+        "telecom_tenure_months": 0.1084,
+        "insurance_paid_months": 0.1171,
+        "autopay_ratio": 1.0
+      }
+    },
+    "gender_female_share": 0.5026,
+    "gender_corr_target": 0.0007
+  }
+}
