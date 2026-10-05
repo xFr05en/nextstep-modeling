@@ -280,6 +280,20 @@ def monotonic_violations(est, X: pd.DataFrame, features, monotone, n_rows=300, n
     return out
 
 
+def log_final_model(est, example: pd.DataFrame) -> list[str]:
+    """Log the fitted model to the active MLflow run so pyfunc serves probabilities.
+
+    MLflow saves sklearn models with skops, which only loads listed types. The model was trained
+    in this process, so its own classes (pipeline, booster, etc.) are listed as trusted.
+    pyfunc serves predict_proba (the default would be predict = class labels). Column 1 is the PD.
+    """
+    trusted = skops.io.get_untrusted_types(data=skops.io.dumps(est))
+    mlflow.sklearn.log_model(est, name="model", input_example=example, skops_trusted_types=trusted,
+                             pyfunc_predict_fn="predict_proba",
+                             signature=infer_signature(example, est.predict_proba(example)))
+    return trusted
+
+
 def stage_final(df, folds, cfg, fs, comparison, monotonic) -> dict:
     winner = pick_winner(comparison[comparison["features"] == "both"], cfg)
     name, res = winner["model"], winner["resampling"]
@@ -366,15 +380,7 @@ def stage_final(df, folds, cfg, fs, comparison, monotonic) -> dict:
         mlflow.log_text(grade_tbl.round(4).to_csv(), "grade_table.csv")
         mlflow.log_artifact(str(ROOT / "config" / "scoring.yaml"))
         mlflow.log_artifact(str(ROOT / "config" / "actionability.yaml"))
-        example = X.iloc[:5]
-        # MLflow saves sklearn models with skops, which only loads listed types. This model was
-        # trained in this run, so its own classes (pipeline, booster, etc.) are listed as trusted.
-        trusted = skops.io.get_untrusted_types(data=skops.io.dumps(final_est))
-        # pyfunc serves predict_proba (default is predict = class labels). Column 1 is the PD.
-        mlflow.sklearn.log_model(final_est, name="model", input_example=example, skops_trusted_types=trusted,
-                                 pyfunc_predict_fn="predict_proba",
-                                 signature=infer_signature(example, final_est.predict_proba(example)))
-        summary["skops_trusted_types"] = trusted
+        summary["skops_trusted_types"] = log_final_model(final_est, X.iloc[:5])
         summary["mlflow_run_name"] = run_name
         summary["mlflow_run_id"] = mlflow.active_run().info.run_id
 

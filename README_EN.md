@@ -20,6 +20,24 @@ Code for data loading, the alternative-data simulator, per-variable actionabilit
 | `models/` | Trained models |
 | `reports/` | Results tables, figures |
 
+## Tests
+Run from the project root (about 10 seconds):
+
+```bash
+pytest
+```
+
+Some tests need files that are not committed (`data/processed/gmsc_clean.csv`, `data/processed/gmsc_sim.csv`). Create them with `python -m src.data`, `python -m src.simulator` and `python -m src.train --stage all`.
+
+- **Default:** if those files are missing, the tests that need them are **skipped** with a message saying which command to run.
+- **`REQUIRE_DATA=1`:** missing files make those tests **fail** instead. Set this in Docker and CI so missing data can never pass silently:
+
+```bash
+REQUIRE_DATA=1 pytest
+```
+
+In a Dockerfile: `ENV REQUIRE_DATA=1`. In GitHub Actions: `env: REQUIRE_DATA: "1"` on the test step.
+
 ## Links to other parts
 - 채민규: uses `config/actionability.yaml` and the trained model (DiCE, fairness)
 - 윤제진: merges this structure into the team repo in week 6 (MLflow, API)
