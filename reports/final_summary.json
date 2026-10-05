@@ -1,0 +1,80 @@
+{
+  "winner": {
+    "model": "xgb",
+    "resampling": "none",
+    "calibrated": false,
+    "dropped_constraints": [],
+    "monotone": {
+      "RevolvingUtilizationOfUnsecuredLines": 1,
+      "age": 0,
+      "NumberOfTime30-59DaysPastDueNotWorse": 1,
+      "DebtRatio": 1,
+      "MonthlyIncome": -1,
+      "NumberOfOpenCreditLinesAndLoans": 0,
+      "NumberOfTimes90DaysLate": 1,
+      "NumberRealEstateLoansOrLines": 0,
+      "NumberOfTime60-89DaysPastDueNotWorse": 1,
+      "NumberOfDependents": 0,
+      "pastdue_special_code": 0,
+      "income_missing": 0,
+      "income_zero": 0,
+      "util_outlier": 0,
+      "telecom_ontime_rate": -1,
+      "utility_ontime_rate": -1,
+      "telecom_tenure_months": -1,
+      "insurance_paid_months": -1,
+      "autopay_ratio": -1
+    }
+  },
+  "metrics": {
+    "auc_mean": 0.9267,
+    "auc_std": 0.0034,
+    "ks_mean": 0.7038,
+    "ks_std": 0.0116,
+    "thin_auc_mean": 0.9172,
+    "thin_auc_std": 0.0069,
+    "psi_mean": 0.0005,
+    "psi_std": 0.0001,
+    "brier_mean": 0.0394,
+    "brier_std": 0.001,
+    "thin_auc_gain_mean": 0.0705,
+    "thin_auc_gain_std": 0.0084,
+    "mono_auc_loss": 0.0001
+  },
+  "brier_before_calibration": 0.03939,
+  "brier_after_calibration": null,
+  "mean_pd_oof": 0.0666,
+  "approval_rate": 0.8576,
+  "approval_rate_thin": 0.7149,
+  "approval_rate_not_thin": 0.8695,
+  "default_rate_approved": 0.0174,
+  "default_rate_declined": 0.3645,
+  "monotonic_violations": {
+    "RevolvingUtilizationOfUnsecuredLines": 0,
+    "NumberOfTime30-59DaysPastDueNotWorse": 0,
+    "DebtRatio": 0,
+    "MonthlyIncome": 0,
+    "NumberOfTimes90DaysLate": 0,
+    "NumberOfTime60-89DaysPastDueNotWorse": 0,
+    "telecom_ontime_rate": 0,
+    "utility_ontime_rate": 0,
+    "telecom_tenure_months": 0,
+    "insurance_paid_months": 0,
+    "autopay_ratio": 0
+  },
+  "charter": {
+    "auc>=0.78": true,
+    "ks>=0.28": true,
+    "thin_gain>=0.03": true,
+    "psi<0.1": true,
+    "mono_loss<=0.01": true
+  },
+  "skops_trusted_types": [
+    "imblearn.pipeline.Pipeline",
+    "numpy.dtype",
+    "xgboost.core.Booster",
+    "xgboost.sklearn.XGBClassifier"
+  ],
+  "mlflow_run_name": "xgb__both__none__mono-full__final",
+  "mlflow_run_id": "e137818745b6445d83d2824a9fe97428"
+}

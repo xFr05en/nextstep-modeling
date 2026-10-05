@@ -36,7 +36,7 @@
 4. Thin-filer flag.
 5. Model comparison: {LogisticRegression, LightGBM, XGBoost} x {GMSC only, alternative only, both} x {no resampling, class weights, SMOTE}, stratified CV. Then monotonic vs. unconstrained for the boosting models. Log every run to local MLflow (`mlruns/`).
 6. pytest: simulator correlation range, reproducibility with seed, monotonicity of predictions, YAML schema, no target leakage.
-7. README in Korean and English.
+7. README in Korean and English. Generate the actionability table Excel (Korean and English) directly from `config/actionability.yaml`, so the Excel and YAML never drift apart.
 
 ## Repo layout
 ```

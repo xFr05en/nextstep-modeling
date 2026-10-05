@@ -1,0 +1,21 @@
+# Calibrated PD -> credit score (0 to 1000, higher = safer) -> grade A to E -> approval.
+# Educational use only. Not for real financial decisions.
+score:
+  # score = base_score + (pdo / ln 2) * ln(odds / base_odds),  odds = (1 - PD) / PD
+  # Standard points-to-double-odds scorecard scaling: every pdo points doubles the good:bad odds.
+  base_score: 600
+  base_odds: 50        # 50:1 good:bad odds (PD about 1.96%) maps to 600
+  pdo: 50
+  min: 0
+  max: 1000
+  pd_clip: [0.0001, 0.9999]   # avoids infinite scores at PD 0 or 1
+# Lower score bound per grade, best first. Cutoffs follow PD bands (approximate PD at the cutoff).
+grades:
+  - {grade: A, min_score: 600, pd_band: "below about 2%"}
+  - {grade: B, min_score: 530, pd_band: "about 2% to 5%"}
+  - {grade: C, min_score: 475, pd_band: "about 5% to 10%"}
+  - {grade: D, min_score: 420, pd_band: "about 10% to 20%"}
+  - {grade: E, min_score: 0,   pd_band: "about 20% and above"}
+# Approval rule; also the target for DiCE recourse (reach an approved grade)
+approval:
+  approve_grades: [A, B, C]

@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import brier_score_loss, roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -47,3 +47,42 @@ def thin_filer_auc_lift(df: pd.DataFrame, target: str, base_features: list[str],
 
 def pearson(a, b) -> float:
     return float(np.corrcoef(np.asarray(a, float), np.asarray(b, float))[0, 1])
+
+
+# ---- Step 5 metrics ----
+
+# MLflow metric keys (shared with the serving code; see reports/mlflow_schema_en.md)
+KEY_AUC = "auc"
+KEY_KS = "ks"
+KEY_THIN_AUC = "thin_auc"
+KEY_THIN_GAIN = "thin_auc_gain"
+KEY_PSI = "psi"
+KEY_BRIER = "brier"
+KEY_MONO_LOSS = "mono_auc_loss"
+
+
+def ks_stat(y, score) -> float:
+    """Kolmogorov-Smirnov: max gap between the score CDFs of defaulters and non-defaulters."""
+    fpr, tpr, _ = roc_curve(y, score)
+    return float(np.max(tpr - fpr))
+
+
+def psi(expected, actual, n_bins: int = 10, eps: float = 1e-6) -> float:
+    """Population Stability Index of `actual` scores vs `expected` (bins from expected quantiles)."""
+    expected, actual = np.asarray(expected, float), np.asarray(actual, float)
+    edges = np.unique(np.quantile(expected, np.linspace(0, 1, n_bins + 1)))
+    edges[0], edges[-1] = -np.inf, np.inf
+    e = np.histogram(expected, edges)[0] / len(expected) + eps
+    a = np.histogram(actual, edges)[0] / len(actual) + eps
+    return float(np.sum((a - e) * np.log(a / e)))
+
+
+def fold_metrics(y_te, p_te, p_tr, thin_te) -> dict:
+    """Metrics for one held-out fold. p_tr = scores on the training fold (for PSI)."""
+    return {
+        KEY_AUC: roc_auc_score(y_te, p_te),
+        KEY_KS: ks_stat(y_te, p_te),
+        KEY_THIN_AUC: roc_auc_score(y_te[thin_te], p_te[thin_te]),
+        KEY_PSI: psi(p_tr, p_te),
+        KEY_BRIER: brier_score_loss(y_te, p_te),
+    }

@@ -1,0 +1,3 @@
+model,resampling,monotone_set,dropped,auc_unconstrained,auc_constrained,mono_auc_loss,n_constrained,selected
+lgbm,none,full,none,0.92622,0.92621,1e-05,11,True
+xgb,none,full,none,0.92674,0.92669,5e-05,11,True

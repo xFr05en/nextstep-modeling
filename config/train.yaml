@@ -1,0 +1,38 @@
+# Model comparison and final model settings (Step 5)
+seed: 42
+n_splits: 5                 # stratified on target x thin_filer; same folds for every run
+data: data/processed/gmsc_sim.csv
+target: SeriousDlqin2yrs
+thin_col: thin_filer
+model_names: [lr, lgbm, xgb]
+feature_sets: [gmsc, alt, both]
+resampling: [none, class_weight, smote]
+# Fixed hyperparameters (no per-run tuning, so the grid compares methods, not tuning effort)
+models:
+  lr:   {max_iter: 2000, C: 1.0}
+  lgbm: {n_estimators: 300, learning_rate: 0.05, num_leaves: 31, min_child_samples: 50}
+  xgb:  {n_estimators: 300, learning_rate: 0.05, max_depth: 5, min_child_weight: 5, tree_method: hist}
+# LR only: log1p then cap at the training fold's quantile (fit inside the fold)
+lr_log_cap_columns: [RevolvingUtilizationOfUnsecuredLines, DebtRatio, MonthlyIncome]
+lr_cap_quantile: 0.99
+# Winner: highest AUC among 'both' runs; runs within 1 fold SD of it count as ties,
+# and ties go to the earlier resampling option in this list.
+resampling_preference: [none, class_weight, smote]
+monotonic:
+  models: [lgbm, xgb]
+  max_auc_loss: 0.01
+  drop_order: [DebtRatio, MonthlyIncome, RevolvingUtilizationOfUnsecuredLines]
+calibration: {method: sigmoid, cv: 3}   # Platt, only if the winner uses class weights or SMOTE
+mlflow:
+  tracking_dir: mlruns                  # SQLite db + artifacts inside mlruns/ (gitignored)
+  experiments:
+    compare: nextstep-model-comparison
+    monotonic: nextstep-monotonic
+    final: nextstep-final
+outputs:
+  comparison: reports/model_comparison.csv
+  monotonic: reports/monotonic_results.csv
+  final_summary: reports/final_summary.json
+  grade_table: reports/grade_table.csv
+  oof: data/processed/final_oof_scores.csv
+  model: models/final_model.joblib
