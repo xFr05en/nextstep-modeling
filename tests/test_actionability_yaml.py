@@ -5,7 +5,7 @@ from tests.helpers import load_yaml
 ACT = load_yaml("actionability.yaml")
 FEATURES = ACT["features"]
 REQUIRED = {"label_ko", "label_en", "source", "actionability", "direction", "step", "bounds",
-            "difficulty", "months_per_step", "monotone", "protected", "dice_vary"}
+            "difficulty", "months_per_step", "monotone", "protected", "dice_vary", "note_ko", "note_en"}
 FLAGS = ["pastdue_special_code", "income_missing", "income_zero", "util_outlier"]
 
 
@@ -18,7 +18,7 @@ def test_every_model_feature_has_valid_entry():
         assert e["source"] in {"gmsc", "derived", "simulated"}, name
         assert e["direction"] in {"increase", "decrease", "none"}, name
         assert e["monotone"] in (-1, 0, 1), name
-        assert e["label_ko"] and e["label_en"], name
+        assert e["label_ko"] and e["label_en"] and e["note_ko"] and e["note_en"], name
         if e["actionability"] in {"IMMUTABLE", "NON_DECREASING", "NOT_RECOMMENDED"}:
             assert e["dice_vary"] is False, f"{name} must be fixed in DiCE"
 

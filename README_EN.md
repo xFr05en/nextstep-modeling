@@ -1,33 +1,49 @@
 # NextStep: Data, Simulator, Modeling (Wonbin Kim's part)
 
-> This system was developed for educational purposes and must not be used for real financial decisions.
+> This system was developed for educational purposes and must not be used for real financial decisions. The alternative-data variables and gender are simulated, not real.
 
-## Overview
-Code for data loading, the alternative-data simulator, per-variable actionability metadata, and monotonic-constraint model training for team 4무원's XAI-based alternative credit scoring system.
+Part of team 4무원's XAI-based alternative credit scoring system for thin-filers (Capstone Design II / Industry Project, CSE4187, Sogang University). This part covers data cleaning, the alternative-data simulator, per-variable actionability metadata, model training with monotonic constraints, and the PD to credit score mapping.
 
 ## How to run
-1. Put `cs-training.csv` (GMSC) and the German Credit file in `data/raw/`.
-2. macOS/Linux: `bash setup.sh` / Windows: `setup.bat`
-3. Activate the virtual environment and work from there.
 
-## Folder layout
-| Folder | Contents |
-|---|---|
-| `config/` | `actionability.yaml` (actionability metadata), `simulator.yaml` (simulator settings) |
-| `data/` | Raw and processed data (not committed) |
-| `src/` | Data processing, simulator, training, evaluation |
-| `tests/` | pytest tests |
-| `models/` | Trained models |
-| `reports/` | Results tables, figures |
+1. Put `cs-training.csv` (Kaggle "Give Me Some Credit") in `data/raw/`. German Credit (`german.data`) is planned as a secondary dataset but **not used yet**.
+2. Setup: macOS/Linux `bash setup.sh`, Windows `setup.bat`. Then `source .venv/bin/activate`.
+3. Run the pipeline in order (about 4 minutes in total, fully seeded):
+
+```bash
+python -m src.data
+```
+```bash
+python -m src.simulator
+```
+```bash
+python -m src.train --stage all
+```
+
+4. Optional reports and figures:
+
+```bash
+python notebooks/eda.py
+```
+```bash
+python notebooks/simulator_report.py
+```
+```bash
+python notebooks/model_report.py
+```
+```bash
+python -m src.actionability_table
+```
 
 ## Tests
+
 Run from the project root (about 10 seconds):
 
 ```bash
 pytest
 ```
 
-Some tests need files that are not committed (`data/processed/gmsc_clean.csv`, `data/processed/gmsc_sim.csv`). Create them with `python -m src.data`, `python -m src.simulator` and `python -m src.train --stage all`.
+Some tests need files that are not committed (`data/processed/gmsc_clean.csv`, `data/processed/gmsc_sim.csv`). Create them with the pipeline commands above.
 
 - **Default:** if those files are missing, the tests that need them are **skipped** with a message saying which command to run.
 - **`REQUIRE_DATA=1`:** missing files make those tests **fail** instead. Set this in Docker and CI so missing data can never pass silently:
@@ -38,9 +54,72 @@ REQUIRE_DATA=1 pytest
 
 In a Dockerfile: `ENV REQUIRE_DATA=1`. In GitHub Actions: `env: REQUIRE_DATA: "1"` on the test step.
 
-## Links to other parts
-- 채민규: uses `config/actionability.yaml` and the trained model (DiCE, fairness)
-- 윤제진: merges this structure into the team repo in week 6 (MLflow, API)
+## Results (final model: XGBoost, all 19 features, no resampling, 11 monotonic constraints)
 
-## Status
-Environment ready. Some decisions will be finalized after the 10/08 meeting (see `CLAUDE.md`).
+| Charter target | Result |
+|---|---|
+| AUC ≥ 0.78 | 0.927 ± 0.004 |
+| KS ≥ 0.28 | 0.704 |
+| Thin-filer AUC gain ≥ +0.03 | +0.071 |
+| PSI < 0.1 | 0.0005 |
+| AUC loss from monotonic constraints ≤ 0.01 | 0.0001 |
+| pytest: at least 10 tests, 80% passing | 25 tests, 100% passing |
+
+These numbers are optimistic because the alternative data is simulated from the real outcome. The realistic reference is the GMSC-only AUC of 0.865. See the limitations below.
+
+## Configuration (all settings live here, not in code)
+
+| File | Controls |
+|---|---|
+| `config/data.yaml` | Cleaning rules (special codes, utilization threshold, minimum age) |
+| `config/simulator.yaml` | Alternative variables: distributions, latent correlation targets, credit link, thin-filer rule |
+| `config/actionability.yaml` | Per-variable actionability class, direction, step, bounds, monotone sign, notes (Korean and English) |
+| `config/train.yaml` | Model grid, hyperparameters, folds, winner rule, MLflow names |
+| `config/scoring.yaml` | PD to score (0 to 1000), grades A to E, approval rule |
+
+## Folder layout
+
+| Folder | Contents |
+|---|---|
+| `config/` | The five YAML files above |
+| `data/` | `raw/` and `processed/` (not committed) |
+| `src/` | `data.py`, `simulator.py`, `features.py`, `train.py`, `evaluate.py`, `scoring.py`, `actionability_table.py` |
+| `notebooks/` | Report and figure scripts (nothing in `src/` depends on them) |
+| `tests/` | pytest suite |
+| `models/` | `final_model.joblib` |
+| `reports/` | Step reports (Korean and English), figures, result tables, actionability Excel |
+| `mlruns/` | MLflow tracking (SQLite, not committed; rebuilt by `src.train`) |
+
+## Reports
+
+| Step | Report |
+|---|---|
+| 1. Data cleaning | `reports/data_report_en.md` |
+| 2. EDA | `reports/eda_report_en.md` |
+| 3. Simulator and thin-filer flag | `reports/simulator_report_en.md` |
+| 5. Model comparison, constraints, scoring | `reports/model_report_en.md` |
+| MLflow guide | `reports/mlflow_schema_en.md` |
+| Actionability table | `reports/actionability_table_en.xlsx` (generated from the YAML; never edit by hand) |
+
+Every report also has a Korean version (`_ko`).
+
+## For teammates
+
+**채민규 (fairness, SHAP, DiCE, cost function)**
+- `config/actionability.yaml`: which variables DiCE may vary (`dice_vary`), direction, step, bounds, difficulty, months per step. The Excel files show the same content.
+- Recourse target: the approval rule in `config/scoring.yaml`, grades A to C, which means a score of 475 or higher (PD below about 10%). Use `src/scoring.py` to map PD to score, grade and approval.
+- Model: `models/final_model.joblib`, a pipeline that takes the 19 input columns as a DataFrame. `predict_proba[:, 1]` is the PD.
+- Fairness inputs: `gender_female` (simulated, protected, not a model feature) and `age` (protected, used as a feature). Age correlates with utilization and dependents (see the EDA and simulator reports).
+
+**윤제진 (MLflow, Docker, FastAPI, Streamlit)**
+- `reports/mlflow_schema_en.md`: experiment and run names, metric keys, input columns, how to load the model. The served model returns probabilities (column 1 = PD).
+- MLflow uses SQLite in `mlruns/mlflow.db`, because MLflow 3.16 no longer accepts the plain folder backend. Browse it with `mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db`.
+- Set `REQUIRE_DATA=1` in Docker and CI (see Tests).
+
+## Limitations
+
+- **Simulation bias.** The alternative variables are generated from the real default column, so models that use them look better than real data would allow. The trade-off patterns (for example, how the credit link lowers the gain) are more reliable than the absolute numbers.
+- **The correlation rule is applied on the copula's latent scale** (0.35 for all five variables). Observed Pearson correlations with default are about 0.18 to 0.27.
+- **PSI uses random folds**, so it is close to 0 by construction. GMSC has no dates, so drift over time cannot be tested.
+- **Policy choices are assumptions:** grade cutoffs, the approval rule, time per step and difficulty are team assumptions, not values from a lender.
+- German Credit is not used yet.
