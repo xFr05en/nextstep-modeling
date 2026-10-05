@@ -107,7 +107,8 @@ Every report also has a Korean version (`_ko`).
 
 **채민규 (fairness, SHAP, DiCE, cost function)**
 - `config/actionability.yaml`: which variables DiCE may vary (`dice_vary`), direction, step, bounds, difficulty, months per step. The Excel files show the same content.
-- Recourse target: the approval rule in `config/scoring.yaml`, grades A to C, which means a score of 475 or higher (PD below about 10%). Use `src/scoring.py` to map PD to score, grade and approval.
+- Recourse target: `recourse_target_score` = 495 in `config/scoring.yaml`. Approval itself stays at grades A to C (score 475 or higher); the 20-point margin keeps paths approved when the model is retrained (see `reports/audit_report_en.md`). Use `src/scoring.py` to map PD to score, grade and approval.
+- Autopay is a model feature but is not used in paths (`dice_vary: false`).
 - Model: `models/final_model.joblib`, a pipeline that takes the 19 input columns as a DataFrame. `predict_proba[:, 1]` is the PD.
 - Fairness inputs: `gender_female` (simulated, protected, not a model feature) and `age` (protected, used as a feature). Age correlates with utilization and dependents (see the EDA and simulator reports).
 

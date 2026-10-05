@@ -277,8 +277,8 @@ features:
   autopay_ratio:
     label_ko: 정기 청구서 자동이체 등록 비율
     label_en: Share of recurring bills on autopay
-    note_ko: "즉시 바꿀 수 있어 '쉬운 경로'가 됨. 그러나 자동이체 설정이 실제 위험을 낮추지는 않아 악용 우려가 있음. 경로 포함 여부는 팀 결정. 업데이트: 아직 미결정으로 현재는 조치 가능(ACTIONABLE). 3단계: 6단계 이산 분포, 잠재 상관 -0.35, 신용 연결 가중치 0.5."
-    note_en: "Can be changed immediately, creating an 'easy path'. But setting autopay does not lower real risk, so there is a gaming concern. Team to decide on inclusion in paths. Update: still open, classified ACTIONABLE for now. Step 3: 6-step discrete marginal, latent correlation -0.35, credit-link weight 0.5."
+    note_ko: "즉시 바꿀 수 있어 '쉬운 경로'가 됨. 그러나 자동이체 설정이 실제 위험을 낮추지는 않아 악용 우려가 있음. 경로 포함 여부는 팀 결정. 3단계: 6단계 이산 분포, 잠재 상관 -0.35, 신용 연결 가중치 0.5. 결정(점검 후): 자동이체 설정은 실제 위험을 낮추지 않으므로 경로에서 제외(dice_vary: false). 모델 변수로는 유지. 점검에서 거절자 4,318명에게 가장 쉬운 단일 경로(약 2.5개월)였음."
+    note_en: "Can be changed immediately, creating an 'easy path'. But setting autopay does not lower real risk, so there is a gaming concern. Team to decide on inclusion in paths. Step 3: 6-step discrete marginal, latent correlation -0.35, credit-link weight 0.5. Decision (after the audit): removed from recourse paths (dice_vary: false) because setting up autopay does not lower real risk. Kept as a model feature. In the audit it was the easiest single path for 4,318 rejected applicants (about 2.5 months)."
     source: simulated
     actionability: ACTIONABLE
     direction: increase
@@ -290,7 +290,7 @@ features:
     months_per_step: 0.5
     monotone: -1
     protected: false
-    dice_vary: true
+    dice_vary: false   # removed from paths after the audit; still a model feature
   pastdue_special_code:
     label_ko: 연체 횟수 특수코드(96/98) 표시
     label_en: Past-due special code (96/98) flag

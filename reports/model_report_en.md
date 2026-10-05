@@ -110,7 +110,7 @@ The actual default rate of each grade is close to its predicted PD, so the grade
 
 Default rate among approved borrowers: 1.7%. Among declined: 36.5%.
 
-Thin-filers are approved less often because their default rate is about twice as high (12.9% vs. 6.2%). For 채민규's DiCE: the recourse target is "reach grade C or better", which means score ≥ 475, or PD below about 10%.
+Thin-filers are approved less often because their default rate is about twice as high (12.9% vs. 6.2%). For 채민규's DiCE: paths must reach `recourse_target_score` = 495 in `config/scoring.yaml`, 20 points above the approval cutoff of 475, so that they stay approved when the model is retrained (decided after the audit, see `audit_report_en.md`).
 
 ## 7. Limitations
 

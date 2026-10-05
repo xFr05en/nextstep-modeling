@@ -107,7 +107,8 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 
 **채민규 (공정성, SHAP, DiCE, 비용 함수)**
 - `config/actionability.yaml`: DiCE가 바꿀 수 있는 변수(`dice_vary`), 방향, 단위, 허용 범위, 난이도, 단계당 개월. 같은 내용이 Excel에도 있습니다.
-- 경로 목표: `config/scoring.yaml`의 승인 규칙, 등급 A~C, 즉 점수 475 이상 (PD 약 10% 미만). PD를 점수, 등급, 승인으로 바꿀 때 `src/scoring.py`를 사용합니다.
+- 경로 목표: `config/scoring.yaml`의 `recourse_target_score` = 495. 승인 자체는 등급 A~C (점수 475 이상)로 유지하며, 20점 여유는 모델을 재학습해도 경로가 승인되도록 하기 위함입니다 (`reports/audit_report_ko.md` 참고). PD를 점수, 등급, 승인으로 바꿀 때 `src/scoring.py`를 사용합니다.
+- 자동이체는 모델 변수지만 경로에는 쓰지 않습니다 (`dice_vary: false`).
 - 모델: `models/final_model.joblib`, 입력 열 19개를 DataFrame으로 받는 파이프라인. `predict_proba[:, 1]`이 PD입니다.
 - 공정성 입력: `gender_female`(시뮬레이션, 보호 속성, 모델 변수 아님), `age`(보호 속성, 모델 변수로 사용). 연령은 사용률, 부양가족 수와 관련됩니다 (EDA와 시뮬레이터 보고서 참고).
 

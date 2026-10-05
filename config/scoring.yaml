@@ -16,6 +16,11 @@ grades:
   - {grade: C, min_score: 475, pd_band: "about 5% to 10%"}
   - {grade: D, min_score: 420, pd_band: "about 10% to 20%"}
   - {grade: E, min_score: 0,   pd_band: "about 20% and above"}
-# Approval rule; also the target for DiCE recourse (reach an approved grade)
+# Approval rule (cutoff = lowest score of an approved grade, 475)
 approval:
   approve_grades: [A, B, C]
+# Score DiCE recourse paths must reach. Kept 20 points above the approval cutoff on purpose:
+# in the audit, paths that only just reached 475 stayed approved under all 3 retrained models
+# in 59.7% of cases (charter target: 80%); aiming 20 points higher gave an estimated 91.1%.
+# See reports/audit_report_en.md, section 3.1.
+recourse_target_score: 495

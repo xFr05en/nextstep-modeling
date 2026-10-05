@@ -29,3 +29,10 @@ def test_pd_ten_percent_is_the_approval_cutoff():
     c_min = next(g["min_score"] for g in CFG["grades"] if g["grade"] == "C")
     assert abs(int(pd_to_score(np.array([0.10]), CFG)[0]) - c_min) <= 2
     assert list(approve(np.array(list("ABCDE")), CFG)) == [1, 1, 1, 0, 0]
+
+
+def test_recourse_target_above_approval_cutoff():
+    cutoff = min(g["min_score"] for g in CFG["grades"] if g["grade"] in CFG["approval"]["approve_grades"])
+    target = CFG["recourse_target_score"]
+    assert cutoff < target <= CFG["score"]["max"]
+    assert score_to_grade(np.array([target]), CFG)[0] in CFG["approval"]["approve_grades"]
