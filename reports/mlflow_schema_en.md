@@ -43,7 +43,7 @@ Values: model = `lr`, `lgbm`, `xgb`. features = `gmsc`, `alt`, `both`. resamplin
 ```python
 import mlflow
 mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")
-model = mlflow.pyfunc.load_model("runs:/e137818745b6445d83d2824a9fe97428/model")
+model = mlflow.pyfunc.load_model("runs:/0540be4848544f999d99bf1ea413008d/model")
 proba = model.predict(X)      # shape (n, 2); column 1 = probability of default
 pd_ = proba[:, 1]
 ```
@@ -54,7 +54,7 @@ pd_ = proba[:, 1]
 - The same fitted model is also saved as `models/final_model.joblib`.
 - The run ID changes every time training is rerun. Find the final run by experiment `nextstep-final` and tag `stage=final`, not by a fixed ID.
 
-## Input columns (19, this order, all numeric; missing values allowed as NaN)
+## Input columns (21, this order, all numeric; missing values allowed as NaN)
 
 1. `RevolvingUtilizationOfUnsecuredLines`
 2. `age`
@@ -70,10 +70,12 @@ pd_ = proba[:, 1]
 12. `income_missing`
 13. `income_zero`
 14. `util_outlier`
-15. `telecom_ontime_rate`
-16. `utility_ontime_rate`
+15. `telecom_payment_rate`
+16. `utility_payment_rate`
 17. `telecom_tenure_months`
 18. `insurance_paid_months`
-19. `autopay_ratio`
+19. `spending_consistency`
+20. `regular_payment_count`
+21. `app_login_frequency`
 
 The pipeline does its own median imputation, so NaN is fine. Gender is not an input.

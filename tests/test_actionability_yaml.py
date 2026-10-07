@@ -14,6 +14,7 @@ def test_every_model_feature_has_valid_entry():
         assert f in FEATURES, f"{f} missing from actionability.yaml"
     for name, e in FEATURES.items():
         assert REQUIRED <= set(e), f"{name} missing {REQUIRED - set(e)}"
+        assert e.get("model_feature", True) in (True, False), name
         assert e["actionability"] in ACT["classes"], name
         assert e["source"] in {"gmsc", "derived", "simulated"}, name
         assert e["direction"] in {"increase", "decrease", "none"}, name
@@ -39,14 +40,31 @@ def test_yaml_consistent_with_other_configs():
     util = FEATURES[data_cfg["util_column"]]
     assert util["bounds"][1] == data_cfg["util_outlier_threshold"]
     for name, spec in sim_cfg["variables"].items():
-        assert FEATURES[name]["source"] == "simulated"
+        assert FEATURES[name]["source"] == "simulated", name
         assert FEATURES[name]["monotone"] == -1 and spec["target_corr"] < 0, name
 
 
-def test_autopay_is_not_recommended_but_still_constrained():
-    """Intentional exception: removed from paths, but monotone -1 is kept so the model is unchanged."""
+def test_autopay_is_not_recommended_and_not_a_model_feature():
+    """Gameable: removed from paths and from the model, but kept in the simulated data."""
     a = FEATURES["autopay_ratio"]
     assert a["actionability"] == "NOT_RECOMMENDED"
-    assert a["dice_vary"] is False
+    assert a["dice_vary"] is False and a["model_feature"] is False
     assert a["monotone"] == -1
-    assert "autopay_ratio" in feature_sets()["all"]
+    assert "autopay_ratio" not in feature_sets()["all"]
+    assert "autopay_ratio" in load_yaml("simulator.yaml")["variables"]
+
+
+def test_all_mission_variables_are_model_features():
+    feats = feature_sets()["all"]
+    for n in ("telecom_payment_rate", "utility_payment_rate", "spending_consistency",
+              "regular_payment_count", "app_login_frequency"):
+        assert n in feats, n
+
+
+def test_mission_variable_classes():
+    assert FEATURES["spending_consistency"]["actionability"] == "ACTIONABLE"
+    assert FEATURES["spending_consistency"]["dice_vary"] is True
+    for n in ("regular_payment_count", "app_login_frequency"):
+        assert FEATURES[n]["actionability"] == "NOT_RECOMMENDED" and FEATURES[n]["dice_vary"] is False, n
+    for n in ("spending_consistency", "regular_payment_count", "app_login_frequency"):
+        assert FEATURES[n]["monotone"] == -1 and FEATURES[n]["source"] == "simulated", n

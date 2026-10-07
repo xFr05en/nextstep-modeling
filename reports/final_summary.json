@@ -19,36 +19,38 @@
       "income_missing": 0,
       "income_zero": 0,
       "util_outlier": 0,
-      "telecom_ontime_rate": -1,
-      "utility_ontime_rate": -1,
+      "telecom_payment_rate": -1,
+      "utility_payment_rate": -1,
       "telecom_tenure_months": -1,
       "insurance_paid_months": -1,
-      "autopay_ratio": -1
+      "spending_consistency": -1,
+      "regular_payment_count": -1,
+      "app_login_frequency": -1
     }
   },
   "metrics": {
-    "auc_mean": 0.9267,
+    "auc_mean": 0.9442,
     "auc_std": 0.0034,
-    "ks_mean": 0.7038,
-    "ks_std": 0.0116,
-    "thin_auc_mean": 0.9172,
-    "thin_auc_std": 0.0069,
-    "psi_mean": 0.0005,
-    "psi_std": 0.0001,
-    "brier_mean": 0.0394,
+    "ks_mean": 0.7415,
+    "ks_std": 0.0068,
+    "thin_auc_mean": 0.9392,
+    "thin_auc_std": 0.0051,
+    "psi_mean": 0.0006,
+    "psi_std": 0.0002,
+    "brier_mean": 0.0357,
     "brier_std": 0.001,
-    "thin_auc_gain_mean": 0.0705,
-    "thin_auc_gain_std": 0.0084,
-    "mono_auc_loss": 0.0001
+    "thin_auc_gain_mean": 0.0925,
+    "thin_auc_gain_std": 0.0146,
+    "mono_auc_loss": 0.0
   },
-  "brier_before_calibration": 0.03939,
+  "brier_before_calibration": 0.03569,
   "brier_after_calibration": null,
-  "mean_pd_oof": 0.0666,
-  "approval_rate": 0.8576,
-  "approval_rate_thin": 0.7149,
-  "approval_rate_not_thin": 0.8695,
-  "default_rate_approved": 0.0174,
-  "default_rate_declined": 0.3645,
+  "mean_pd_oof": 0.0667,
+  "approval_rate": 0.8663,
+  "approval_rate_thin": 0.7419,
+  "approval_rate_not_thin": 0.8767,
+  "default_rate_approved": 0.0149,
+  "default_rate_declined": 0.4031,
   "monotonic_violations": {
     "RevolvingUtilizationOfUnsecuredLines": 0,
     "NumberOfTime30-59DaysPastDueNotWorse": 0,
@@ -56,11 +58,13 @@
     "MonthlyIncome": 0,
     "NumberOfTimes90DaysLate": 0,
     "NumberOfTime60-89DaysPastDueNotWorse": 0,
-    "telecom_ontime_rate": 0,
-    "utility_ontime_rate": 0,
+    "telecom_payment_rate": 0,
+    "utility_payment_rate": 0,
     "telecom_tenure_months": 0,
     "insurance_paid_months": 0,
-    "autopay_ratio": 0
+    "spending_consistency": 0,
+    "regular_payment_count": 0,
+    "app_login_frequency": 0
   },
   "charter": {
     "auc>=0.78": true,
@@ -76,5 +80,5 @@
     "xgboost.sklearn.XGBClassifier"
   ],
   "mlflow_run_name": "xgb__both__none__mono-full__final",
-  "mlflow_run_id": "e137818745b6445d83d2824a9fe97428"
+  "mlflow_run_id": "0540be4848544f999d99bf1ea413008d"
 }

@@ -29,14 +29,16 @@ from src.simulator import credit_score, load_config, simulate  # noqa: E402
 
 ALT_SHORT = {
     "en": {
-        "telecom_ontime_rate": "Phone bill on-time rate", "utility_ontime_rate": "Utility bill on-time rate",
+        "telecom_payment_rate": "Phone bill payment rate", "utility_payment_rate": "Utility bill payment rate",
         "telecom_tenure_months": "Phone carrier tenure (months)", "insurance_paid_months": "Insurance paid months",
-        "autopay_ratio": "Autopay share",
+        "autopay_ratio": "Autopay share", "spending_consistency": "Spending consistency",
+        "regular_payment_count": "Recurring payments", "app_login_frequency": "App logins",
     },
     "ko": {
-        "telecom_ontime_rate": "통신요금 정시납부율", "utility_ontime_rate": "공과금 정시납부율",
+        "telecom_payment_rate": "통신비 정상납부율", "utility_payment_rate": "공과금 납부율",
         "telecom_tenure_months": "통신사 가입 기간(개월)", "insurance_paid_months": "건강보험·연금 납부 개월",
-        "autopay_ratio": "자동이체 비율",
+        "autopay_ratio": "자동이체 비율", "spending_consistency": "소비 일관성 점수",
+        "regular_payment_count": "정기결제 건수", "app_login_frequency": "앱 로그인 빈도",
     },
 }
 TXT = {

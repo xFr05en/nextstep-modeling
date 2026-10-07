@@ -93,4 +93,6 @@ def test_no_target_or_protected_columns_in_features():
     for name, cols in fs.items():
         for banned in (CFG["target"], "gender_female", CFG["thin_col"]):
             assert banned not in cols, f"{banned} in feature set {name}"
-    assert fs["alt"] == list(load_yaml("simulator.yaml")["variables"])
+    act = load_yaml("actionability.yaml")["features"]
+    expected = [v for v in load_yaml("simulator.yaml")["variables"] if act[v].get("model_feature", True)]
+    assert fs["alt"] == expected

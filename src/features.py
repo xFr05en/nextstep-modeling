@@ -18,10 +18,13 @@ def add_thin_filer_flag(df: pd.DataFrame, rule: str) -> pd.DataFrame:
 
 def feature_sets(actionability_path: Path | str = ROOT / "config" / "actionability.yaml",
                  simulator_path: Path | str = ROOT / "config" / "simulator.yaml") -> dict:
-    """Model feature lists. Gender is protected and simulated, so it is never a model feature."""
+    """Model feature lists. Gender is protected and simulated, so it is never a model feature.
+    Features with `model_feature: false` in the YAML stay in the data but are not model inputs."""
     with open(actionability_path, encoding="utf-8") as f:
         feats = yaml.safe_load(f)["features"]
     with open(simulator_path, encoding="utf-8") as f:
         alt = list(yaml.safe_load(f)["variables"])
-    base = [k for k, v in feats.items() if v["source"] in ("gmsc", "derived")]
+    use = {k for k, v in feats.items() if v.get("model_feature", True)}
+    base = [k for k, v in feats.items() if v["source"] in ("gmsc", "derived") and k in use]
+    alt = [k for k in alt if k in use]
     return {"base": base, "alt": alt, "all": base + alt}

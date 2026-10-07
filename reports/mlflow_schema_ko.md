@@ -43,7 +43,7 @@
 ```python
 import mlflow
 mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")
-model = mlflow.pyfunc.load_model("runs:/e137818745b6445d83d2824a9fe97428/model")
+model = mlflow.pyfunc.load_model("runs:/0540be4848544f999d99bf1ea413008d/model")
 proba = model.predict(X)      # 크기 (n, 2); 1번 열 = 부도 확률
 pd_ = proba[:, 1]
 ```
@@ -54,7 +54,7 @@ pd_ = proba[:, 1]
 - 같은 모델이 `models/final_model.joblib`에도 저장되어 있습니다.
 - 학습을 다시 실행하면 실행 ID가 바뀝니다. 고정 ID 대신 실험 `nextstep-final`과 태그 `stage=final`로 최종 실행을 찾으십시오.
 
-## 입력 열 (19개, 이 순서, 모두 숫자; 결측은 NaN 허용)
+## 입력 열 (21개, 이 순서, 모두 숫자; 결측은 NaN 허용)
 
 1. `RevolvingUtilizationOfUnsecuredLines`
 2. `age`
@@ -70,10 +70,12 @@ pd_ = proba[:, 1]
 12. `income_missing`
 13. `income_zero`
 14. `util_outlier`
-15. `telecom_ontime_rate`
-16. `utility_ontime_rate`
+15. `telecom_payment_rate`
+16. `utility_payment_rate`
 17. `telecom_tenure_months`
 18. `insurance_paid_months`
-19. `autopay_ratio`
+19. `spending_consistency`
+20. `regular_payment_count`
+21. `app_login_frequency`
 
 파이프라인이 자체적으로 중앙값 대체를 하므로 NaN이 있어도 됩니다. 성별은 입력이 아닙니다.

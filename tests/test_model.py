@@ -21,7 +21,7 @@ def test_final_model_inputs_match_feature_order():
 def test_final_model_never_moves_wrong_way():
     X, _ = _sample()
     mono = monotone_vector(FEATS)
-    assert sum(m != 0 for m in mono) == 11
+    assert sum(m != 0 for m in mono) == 13
     violations = monotonic_violations(final_model(), X, FEATS, mono, n_rows=300)
     assert violations and all(v == 0 for v in violations.values()), violations
 
