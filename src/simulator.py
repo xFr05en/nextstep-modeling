@@ -29,7 +29,7 @@ from scipy import stats
 from sklearn.metrics import roc_auc_score
 
 from src.evaluate import pearson
-from src.features import add_thin_filer_flag
+from src.features import add_thin_filer_flag, is_thin_filer_mission
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "config" / "simulator.yaml"
@@ -158,9 +158,13 @@ def _pair_stat(X: dict, names: list[str], stat: str) -> float:
 
 # ---- Main entry ----
 
-def validate_scenario(thin_filer_ratio, bias_ratio) -> None:
+def validate_scenario(thin_filer_ratio, bias_ratio, thin_filer_mode: str = "subsample") -> None:
     if thin_filer_ratio is not None and not 0 < thin_filer_ratio < 1:
         raise ValueError(f"thin_filer_ratio must be None or in (0, 1), got {thin_filer_ratio}")
+    if thin_filer_mode not in ("subsample", "mask"):
+        raise ValueError(f"thin_filer_mode must be 'subsample' or 'mask', got {thin_filer_mode!r}")
+    if thin_filer_mode == "mask" and thin_filer_ratio is None:
+        raise ValueError("thin_filer_mode 'mask' needs a thin_filer_ratio")
     if not 0 <= bias_ratio <= 1:
         raise ValueError(f"bias_ratio must be in [0, 1], got {bias_ratio}")
 
@@ -179,22 +183,41 @@ def subsample_thin_ratio(df: pd.DataFrame, ratio: float, thin_col: str, seed: in
     return pd.concat([thin, rest]).sort_index()
 
 
+def mask_pastdue(df: pd.DataFrame, ratio: float, cfg: dict) -> tuple[pd.DataFrame, int]:
+    """Demonstration mode: blank the past-due columns so the mission rule flags `ratio` of the rows.
+    Rows that are already missing (the 96/98 special codes) count toward the share."""
+    cols = cfg["credit_link"]["pastdue_columns"]
+    mcfg = cfg["thin_filer"]["mission"]
+    already = is_thin_filer_mission(df, cols, mcfg["card_history_column"], mcfg["min_missing"]).to_numpy() == 1
+    n_more = max(int(round(ratio * len(df))) - int(already.sum()), 0)
+    rng = np.random.default_rng(np.random.SeedSequence(cfg["seed"], spawn_key=(1001,)))
+    pick = rng.choice(np.flatnonzero(~already), n_more, replace=False)
+    out = df.copy()
+    out.loc[out.index[pick], cols] = np.nan
+    out["thin_filer"] = is_thin_filer_mission(out, cols, mcfg["card_history_column"], mcfg["min_missing"],
+                                              mcfg["min_card_months"])
+    return out, n_more
+
+
 def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None, target: str = "SeriousDlqin2yrs",
-             thin_filer_ratio=_UNSET, bias_ratio=_UNSET) -> tuple[pd.DataFrame, dict]:
+             thin_filer_ratio=_UNSET, bias_ratio=_UNSET, thin_filer_mode=_UNSET) -> tuple[pd.DataFrame, dict]:
     """Add the alternative variables and gender to df. Returns (new frame, info).
 
-    thin_filer_ratio: None = natural share; else (0, 1), reached by subsampling without replacement.
+    thin_filer_ratio: None = natural share; else (0, 1).
+    thin_filer_mode: "subsample" (default; subsampling without replacement, proxy rule) or
+        "mask" (demonstration only; blanks past-due columns after generation, mission rule).
     bias_ratio: [0, 1]; protected group's hidden scores shifted down by bias_ratio x SD.
-    Defaults come from cfg["scenario"] (None and 0.0)."""
+    Defaults come from cfg["scenario"] (None, "subsample", 0.0)."""
     sc = cfg.get("scenario", {})
     thin_filer_ratio = sc.get("thin_filer_ratio") if thin_filer_ratio is _UNSET else thin_filer_ratio
     bias_ratio = float(sc.get("bias_ratio", 0.0) if bias_ratio is _UNSET else bias_ratio)
-    validate_scenario(thin_filer_ratio, bias_ratio)
+    thin_filer_mode = sc.get("thin_filer_mode", "subsample") if thin_filer_mode is _UNSET else thin_filer_mode
+    validate_scenario(thin_filer_ratio, bias_ratio, thin_filer_mode)
     thin_col = "thin_filer"
     if thin_col not in df.columns:
         df = add_thin_filer_flag(df, cfg["thin_filer"]["rule"])
     rows_in = len(df)
-    if thin_filer_ratio is not None:
+    if thin_filer_ratio is not None and thin_filer_mode == "subsample":
         df = subsample_thin_ratio(df, thin_filer_ratio, thin_col, cfg["seed"])
     source_unique = bool(df.index.is_unique)
     df = df.reset_index(drop=True)
@@ -271,12 +294,18 @@ def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None, target: str = 
     for n in names:
         out[n] = X[n]
     out["gender_female"] = gender
+    masked_rows = 0
+    if thin_filer_ratio is not None and thin_filer_mode == "mask":
+        # After generation: the person keeps their payment behavior; only the bureau record is missing
+        out, masked_rows = mask_pastdue(out, thin_filer_ratio, cfg)
 
     cl = cfg["credit_link"]
     pastdue_sum = df[cl["pastdue_columns"]].sum(axis=1)
     info = {
         "b": b,
-        "scenario": {"thin_filer_ratio": thin_filer_ratio, "bias_ratio": bias_ratio,
+        "scenario": {"thin_filer_ratio": thin_filer_ratio, "thin_filer_mode": thin_filer_mode,
+                     "thin_rule": "mission" if thin_filer_mode == "mask" and thin_filer_ratio is not None else "proxy",
+                     "masked_rows": masked_rows, "bias_ratio": bias_ratio,
                      "rows_in": rows_in, "rows_out": len(out), "sampled_without_replacement": source_unique,
                      "thin_share": round(float(out[thin_col].mean()), 4),
                      "default_rate": round(float(out[target].mean()), 4),

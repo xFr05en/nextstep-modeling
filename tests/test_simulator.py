@@ -111,7 +111,7 @@ def test_bias_ratio_outside_unit_interval_raises(bias):
 def test_scenario_defaults_reproduce_data():
     assert CFG["scenario"]["thin_filer_ratio"] is None and CFG["scenario"]["bias_ratio"] == 0.0
     a, _ = _run()
-    b, _ = simulate(_sample(), CFG, thin_filer_ratio=None, bias_ratio=0.0)
+    b, _ = simulate(_sample(), CFG, thin_filer_ratio=None, bias_ratio=0.0, thin_filer_mode="subsample")
     pd.testing.assert_frame_equal(a, b)
 
 

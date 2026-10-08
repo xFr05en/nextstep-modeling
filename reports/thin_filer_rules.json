@@ -1,0 +1,35 @@
+{
+  "raw": {
+    "rows": 150000,
+    "flagged": 0,
+    "share": 0.0,
+    "missing_pastdue_values": 0
+  },
+  "cleaned": {
+    "rows": 149999,
+    "flagged": 269,
+    "share": 0.0018,
+    "default_rate": 0.5465,
+    "all_are_special_code": true,
+    "proxy_flags_of_these": 269
+  },
+  "proxy": {
+    "flagged": 11564,
+    "share": 0.0771,
+    "default_rate": 0.1293
+  },
+  "mask_0.3": {
+    "rows": 149999,
+    "mission_share": 0.3,
+    "masked_rows": 44731,
+    "default_rate_flagged": 0.0689,
+    "thin_filer_col_share": 0.3,
+    "mission_obs_r": {
+      "telecom_payment_rate": -0.3234,
+      "utility_payment_rate": -0.3195,
+      "spending_consistency": -0.318,
+      "regular_payment_count": -0.3163,
+      "app_login_frequency": -0.3225
+    }
+  }
+}

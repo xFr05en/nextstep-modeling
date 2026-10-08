@@ -66,4 +66,23 @@ The 96/98 code group defaults at about 8 times the base rate, so the flag carrie
 ## 6. Open items
 
 - **Extreme `DebtRatio` with income present:** 659 rows above 10 and 468 above 100 (99.9th percentile 1,467). This probably comes from a very small reported income. They are left as they are for now. Tree models are not affected much, but Logistic Regression may need a cap or log transform in Step 5.
-- **Thin-filer preview:** the proxy rule flags 7.71% of rows. The thin-filer flag itself is Step 4.
+- **Thin-filer definition:** see section 7.
+
+## 7. Thin-filer definition
+
+The mission defines a thin-filer as a customer with **2 or more missing past-due columns OR less than 12 months of card history**. This rule is implemented as `is_thin_filer_mission()` in `src/features.py`, but it cannot identify thin-filers in GMSC:
+
+| Data | Mission rule flags | Notes |
+|---|---|---|
+| Raw `cs-training.csv` | **0 rows (0%)** | The past-due columns have no missing values, and there is no card-history column. |
+| After cleaning (Step 1) | **269 rows (0.18%)** | Exactly the rows with code 96/98, set to missing in Step 1. They default at **54.65%**, the riskiest group in the data, not people with short credit histories. |
+| Simulator, `thin_filer_mode="mask"`, `thin_filer_ratio=0.3` | **30.0%** (44,731 rows masked) | Demonstration only: the past-due columns are blanked for a random, seeded share of rows. Because the choice is random, these rows default at 6.89%, about the average. |
+
+**Therefore every official number uses our proxy:** at most 2 open loans or credit lines **and** no real estate loans (`is_thin_filer_proxy()`, rule in `config/simulator.yaml`). It describes people with very few credit products, which is what "thin file" means.
+- It flags **11,564 rows (7.71%)** with a default rate of **12.93%**, about twice the 6.68% average.
+- It also flags all **269** special-code rows, so both rules agree on them.
+- The alternative-data lift (thin-filer AUC with vs. without alternative data) is measured on the proxy group.
+
+**Simulator modes:** `thin_filer_ratio` works in two ways (`thin_filer_mode` in `config/simulator.yaml`).
+- **`subsample` (default):** reaches the ratio by subsampling without replacement, using the proxy. The final model and every official number use this mode with the natural share.
+- **`mask` (demonstration only):** blanks the 3 past-due columns after the alternative variables are generated, so the mission rule flags the requested share. It shows how the mission's own rule would behave if bureau data were missing. It is never used for the final model.

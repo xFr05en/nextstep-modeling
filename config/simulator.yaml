@@ -64,6 +64,13 @@ age_bands: {edges: [0, 34, 54, 200], labels: ["20-34", "35-54", "55+"]}
 scenario:
   thin_filer_ratio: null   # None = natural share (7.71% with the proxy rule); else (0, 1), reached by
                            # subsampling the larger group without replacement (total rows shrink)
+  # thin_filer_mode: how thin_filer_ratio is applied.
+  #   subsample (default): reach the ratio by subsampling; thin_filer = proxy rule. Used for the final
+  #     model and every official number.
+  #   mask (demonstration only): blank the 3 past-due columns for a random share of rows (seeded), so
+  #     the mission rule (2+ missing past-due columns) flags thin_filer_ratio of the rows;
+  #     thin_filer = mission rule. Not used for the final model.
+  thin_filer_mode: subsample
   bias_ratio: 0.0          # [0, 1]; shifts the protected group's hidden scores down by bias_ratio x SD
                            # (1 = 1 SD) for every alternative variable; 0 = no shift
   protected: {gender: female, age_band: "20-34"}   # women OR the mission's youngest age band
@@ -72,7 +79,10 @@ gender:
   p_female: 0.5
   independent_of_target: true
 thin_filer:
+  # Proxy rule used for every official number (see data_report, "Thin-filer definition")
   rule: "NumberOfOpenCreditLinesAndLoans <= 2 and NumberRealEstateLoansOrLines == 0"
+  # Mission rule, implemented in src.features.is_thin_filer_mission; GMSC has no card-history column
+  mission: {min_missing: 2, card_history_column: null, min_card_months: 12}
 outputs:
   main: data/processed/gmsc_sim.csv
   target_only: data/processed/gmsc_sim_target_only.csv

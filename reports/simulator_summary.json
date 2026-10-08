@@ -5,6 +5,9 @@
     "b": 0.3,
     "scenario": {
       "thin_filer_ratio": null,
+      "thin_filer_mode": "subsample",
+      "thin_rule": "proxy",
+      "masked_rows": 0,
       "bias_ratio": 0.0,
       "rows_in": 149999,
       "rows_out": 149999,
@@ -294,6 +297,9 @@
     "b": 0.0,
     "scenario": {
       "thin_filer_ratio": null,
+      "thin_filer_mode": "subsample",
+      "thin_rule": "proxy",
+      "masked_rows": 0,
       "bias_ratio": 0.0,
       "rows_in": 149999,
       "rows_out": 149999,
