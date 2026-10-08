@@ -4,9 +4,12 @@ from functools import lru_cache
 
 import numpy as np
 import pandas as pd
+import pytest
 
-from src.simulator import credit_score, load_config, simulate
-from tests.helpers import clean_data, sim_data
+from src.features import add_thin_filer_flag, feature_sets
+from src.scoring import load_config as load_scoring, pd_to_score
+from src.simulator import credit_score, load_config, simulate, validate_scenario
+from tests.helpers import clean_data, final_model, sim_data
 
 CFG = load_config()
 NAMES = list(CFG["variables"])
@@ -87,3 +90,52 @@ def test_credit_part_has_no_age_input():
     shuffled["age"] = np.random.default_rng(0).permutation(df["age"].to_numpy())
     np.testing.assert_array_equal(credit_score(df, CFG), credit_score(shuffled, CFG))
     assert not CFG["variables"]["app_login_frequency"].get("age_cap")
+
+
+# ---- Scenario parameters (thin_filer_ratio, bias_ratio) ----
+
+@pytest.mark.parametrize("ratio", [0, 1, 1.2, -0.1])
+def test_thin_filer_ratio_outside_open_interval_raises(ratio):
+    with pytest.raises(ValueError, match="thin_filer_ratio"):
+        validate_scenario(ratio, 0.0)
+
+
+@pytest.mark.parametrize("bias", [-0.1, 1.01, 2])
+def test_bias_ratio_outside_unit_interval_raises(bias):
+    with pytest.raises(ValueError, match="bias_ratio"):
+        validate_scenario(None, bias)
+    with pytest.raises(ValueError, match="bias_ratio"):
+        simulate(_sample(), CFG, bias_ratio=bias)
+
+
+def test_scenario_defaults_reproduce_data():
+    assert CFG["scenario"]["thin_filer_ratio"] is None and CFG["scenario"]["bias_ratio"] == 0.0
+    a, _ = _run()
+    b, _ = simulate(_sample(), CFG, thin_filer_ratio=None, bias_ratio=0.0)
+    pd.testing.assert_frame_equal(a, b)
+
+
+def test_thin_filer_ratio_changes_share_without_duplicates():
+    natural = add_thin_filer_flag(_sample(), CFG["thin_filer"]["rule"])["thin_filer"].mean()
+    sim, info = simulate(_sample(), CFG, thin_filer_ratio=0.30)
+    sc = info["scenario"]
+    assert natural < 0.15                                   # natural share is far from the target
+    assert abs(sim["thin_filer"].mean() - 0.30) < 0.002
+    assert sc["sampled_without_replacement"] and sc["rows_out"] < sc["rows_in"]
+
+
+def test_bias_ratio_widens_gender_and_age_gaps():
+    """Saved final model (trained on unbiased data) scores data simulated with more bias."""
+    est, scoring = final_model(), load_scoring()
+    cutoff = min(g["min_score"] for g in scoring["grades"] if g["grade"] in scoring["approval"]["approve_grades"])
+    feats = feature_sets()["all"]
+    young = CFG["scenario"]["protected"]["age_band"]
+    gaps = {"gender": [], "age": []}
+    for bias in (0.0, 0.2, 0.5):
+        sim, _ = simulate(_sample(), CFG, bias_ratio=bias)
+        approved = pd_to_score(est.predict_proba(sim[feats].astype(float))[:, 1], scoring) >= cutoff
+        band = pd.cut(sim["age"], CFG["age_bands"]["edges"], labels=CFG["age_bands"]["labels"]).astype(str)
+        gaps["gender"].append(approved[sim["gender_female"] == 0].mean() - approved[sim["gender_female"] == 1].mean())
+        gaps["age"].append(approved[band != young].mean() - approved[band == young].mean())
+    for name, g in gaps.items():
+        assert g[0] < g[1] < g[2], f"{name} gap did not widen: {g}"

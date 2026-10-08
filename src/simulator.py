@@ -35,6 +35,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CONFIG = ROOT / "config" / "simulator.yaml"
 
 
+_UNSET = object()
+
+
 def load_config(path: Path | str = DEFAULT_CONFIG) -> dict:
     with open(path, encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -117,16 +120,19 @@ def to_variable(z: np.ndarray, spec: dict, age, cfg) -> np.ndarray:
 
 
 def calibrate(spec: dict, b: float, noise: float, T, C, e, cal: dict, *, y=None, age=None, cfg=None,
-              g: float = 0.0, F=None) -> tuple[float, np.ndarray, np.ndarray]:
+              g: float = 0.0, F=None, shift=None) -> tuple[float, np.ndarray, np.ndarray]:
     """Bisection on a so the variable hits spec['target_corr'] (negative), on the scale set by
     spec['calibrate_on']. The credit part and shared factor are part of z, so the total is calibrated.
-    Returns (a, z, x)."""
+    shift (bias_ratio x protected-group indicator) moves the group's z down by that many SDs of z,
+    before calibration, so the target correlation still holds overall. Returns (a, z, x)."""
     want = abs(spec["target_corr"])
     observed = spec.get("calibrate_on", "latent") == "observed"
     tol = cal["tolerance_observed"] if observed else cal["tolerance_latent"]
 
     def gap(a):
         z = latent_score(a, b, noise, T, C, e, g, F)
+        if shift is not None:
+            z = z - shift * z.std()
         x = to_variable(z, spec, age, cfg)
         r = pearson(x, y) if observed else pearson(z, T)
         return -r - want, z, x
@@ -152,9 +158,47 @@ def _pair_stat(X: dict, names: list[str], stat: str) -> float:
 
 # ---- Main entry ----
 
-def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None,
-             target: str = "SeriousDlqin2yrs") -> tuple[pd.DataFrame, dict]:
-    """Add the alternative variables and gender to df. Returns (new frame, info)."""
+def validate_scenario(thin_filer_ratio, bias_ratio) -> None:
+    if thin_filer_ratio is not None and not 0 < thin_filer_ratio < 1:
+        raise ValueError(f"thin_filer_ratio must be None or in (0, 1), got {thin_filer_ratio}")
+    if not 0 <= bias_ratio <= 1:
+        raise ValueError(f"bias_ratio must be in [0, 1], got {bias_ratio}")
+
+
+def subsample_thin_ratio(df: pd.DataFrame, ratio: float, thin_col: str, seed: int) -> pd.DataFrame:
+    """Reach the requested thin-filer share by subsampling the larger group without replacement."""
+    thin = df[df[thin_col] == 1]
+    rest = df[df[thin_col] == 0]
+    rng = np.random.default_rng(np.random.SeedSequence(seed, spawn_key=(1000,)))
+    if ratio >= len(thin) / len(df):          # keep all thin-filers, drop some others
+        n_rest = int(round(len(thin) * (1 - ratio) / ratio))
+        rest = rest.iloc[np.sort(rng.choice(len(rest), n_rest, replace=False))]
+    else:                                      # keep all others, drop some thin-filers
+        n_thin = int(round(len(rest) * ratio / (1 - ratio)))
+        thin = thin.iloc[np.sort(rng.choice(len(thin), n_thin, replace=False))]
+    return pd.concat([thin, rest]).sort_index()
+
+
+def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None, target: str = "SeriousDlqin2yrs",
+             thin_filer_ratio=_UNSET, bias_ratio=_UNSET) -> tuple[pd.DataFrame, dict]:
+    """Add the alternative variables and gender to df. Returns (new frame, info).
+
+    thin_filer_ratio: None = natural share; else (0, 1), reached by subsampling without replacement.
+    bias_ratio: [0, 1]; protected group's hidden scores shifted down by bias_ratio x SD.
+    Defaults come from cfg["scenario"] (None and 0.0)."""
+    sc = cfg.get("scenario", {})
+    thin_filer_ratio = sc.get("thin_filer_ratio") if thin_filer_ratio is _UNSET else thin_filer_ratio
+    bias_ratio = float(sc.get("bias_ratio", 0.0) if bias_ratio is _UNSET else bias_ratio)
+    validate_scenario(thin_filer_ratio, bias_ratio)
+    thin_col = "thin_filer"
+    if thin_col not in df.columns:
+        df = add_thin_filer_flag(df, cfg["thin_filer"]["rule"])
+    rows_in = len(df)
+    if thin_filer_ratio is not None:
+        df = subsample_thin_ratio(df, thin_filer_ratio, thin_col, cfg["seed"])
+    source_unique = bool(df.index.is_unique)
+    df = df.reset_index(drop=True)
+
     b = cfg["credit_link"]["b"] if b is None else b
     specs = cfg["variables"]
     names = list(specs)
@@ -169,7 +213,14 @@ def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None,
     E = {n: rngs[i + 2].standard_normal(len(df)) for i, n in enumerate(names)}
     F = rngs[len(names) + 2].standard_normal(len(df))
     cal = cfg["calibration"]
-    kw = {"y": y, "age": age, "cfg": cfg}
+    gender = (rngs[1].random(len(df)) < cfg["gender"]["p_female"]).astype(int)
+    bands = cfg["age_bands"]
+    band = pd.cut(df["age"], bands["edges"], labels=bands["labels"])
+    prot = sc.get("protected", {"gender": "female", "age_band": bands["labels"][0]})
+    protected = ((gender == 1) if prot.get("gender") == "female" else np.zeros(len(df), bool)) | \
+                (band.astype(str).to_numpy() == prot.get("age_band"))
+    shift = bias_ratio * protected.astype(float) if bias_ratio > 0 else None
+    kw = {"y": y, "age": age, "cfg": cfg, "shift": shift}
 
     def run(names_, g):
         out = {}
@@ -219,14 +270,17 @@ def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None,
     out = df.copy()
     for n in names:
         out[n] = X[n]
-    out["gender_female"] = (rngs[1].random(len(df)) < cfg["gender"]["p_female"]).astype(int)
+    out["gender_female"] = gender
 
     cl = cfg["credit_link"]
     pastdue_sum = df[cl["pastdue_columns"]].sum(axis=1)
-    bands = cfg["age_bands"]
-    band = pd.cut(df["age"], bands["edges"], labels=bands["labels"])
     info = {
         "b": b,
+        "scenario": {"thin_filer_ratio": thin_filer_ratio, "bias_ratio": bias_ratio,
+                     "rows_in": rows_in, "rows_out": len(out), "sampled_without_replacement": source_unique,
+                     "thin_share": round(float(out[thin_col].mean()), 4),
+                     "default_rate": round(float(out[target].mean()), 4),
+                     "protected_share": round(float(protected.mean()), 4)},
         "shared_factor": sf_info,
         "params": params,
         "corr_target_latent": {n: round(pearson(Z[n], T), 4) for n in names},

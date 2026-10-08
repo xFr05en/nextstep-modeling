@@ -57,6 +57,16 @@ tenure_min_age: 18
 max_inter_corr: 0.60
 # Mission fairness age bands (used for reporting and, in Step 2, bias_ratio)
 age_bands: {edges: [0, 34, 54, 200], labels: ["20-34", "35-54", "55+"]}
+# Scenario parameters (mission checklist: thin_filer_ratio and bias_ratio must change the output).
+# Our defaults differ from the mission example (thin_filer_ratio=0.3, bias_ratio=0.1) on purpose:
+# the final model is trained on the natural thin-filer share and on unbiased data. The other values
+# are for scenario analysis only.
+scenario:
+  thin_filer_ratio: null   # None = natural share (7.71% with the proxy rule); else (0, 1), reached by
+                           # subsampling the larger group without replacement (total rows shrink)
+  bias_ratio: 0.0          # [0, 1]; shifts the protected group's hidden scores down by bias_ratio x SD
+                           # (1 = 1 SD) for every alternative variable; 0 = no shift
+  protected: {gender: female, age_band: "20-34"}   # women OR the mission's youngest age band
 gender:
   generate: true
   p_female: 0.5
