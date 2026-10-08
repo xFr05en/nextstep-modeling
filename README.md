@@ -8,7 +8,7 @@
 
 1. `data/raw/`에 `cs-training.csv`(Kaggle "Give Me Some Credit")를 넣습니다. 보조 German Credit 모델용 `german.data`도 같은 위치에 넣습니다 ([UCI 저장소](https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data)).
 2. 설정: macOS/Linux `bash setup.sh`, Windows `setup.bat`. 이후 `source .venv/bin/activate`.
-3. 파이프라인을 순서대로 실행합니다 (약 10분, 시드 고정):
+3. 파이프라인을 순서대로 실행합니다 (약 15분, 시드 고정):
 
 ```bash
 python -m src.data
@@ -88,7 +88,7 @@ XGBoost, 변수 21개, 불균형 처리 없음, 단조 제약 13개. train + val
 | `config/data.yaml` | 정제 규칙 (특수코드, 사용률 기준, 최소 연령) |
 | `config/simulator.yaml` | 대체 변수 8개 (분포, 관측·잠재 상관 목표, 공통 요인), 신용 연결, `thin_filer_ratio` / `thin_filer_mode` / `bias_ratio`, 씬파일러 규칙 |
 | `config/actionability.yaml` | 변수별 조치 가능성 분류, 방향, 단위, 허용 범위, 단조 부호, `dice_vary`, `model_feature`, 비고 (한국어, 영어) |
-| `config/train.yaml` | 분할 (70/15/15), 교차검증 (3 × 5겹), 모델 비교 조합, 하이퍼파라미터, 선정 규칙, 모델 버전, MLflow 실험 |
+| `config/train.yaml` | 분할 (70/15/15), 교차검증 (5 × 5겹), 모델 비교 조합, 하이퍼파라미터, 선정 규칙, 모델 버전, MLflow 실험 |
 | `config/scoring.yaml` | PD에서 점수(0~1000), 등급 A~E, 승인 규칙 (점수 475 이상), 경로 목표 (495) |
 | `config/german.yaml` | German Credit 보조 모델 |
 | `.env.example` | `MLFLOW_TRACKING_URI` (기본은 로컬 `./mlruns`, Docker에서는 compose의 MLflow 서버) |
@@ -127,13 +127,14 @@ XGBoost, 변수 21개, 불균형 처리 없음, 단조 제약 13개. train + val
 
 **모두:** `data/processed/split.csv` (row_id, split)가 train / validation / test를 정합니다. 기준점과 공정성 완화는 **validation**에서 조정하고 **test**에서 보고합니다.
 
-**채민규 (공정성, SHAP, DiCE, 비용 함수, ANOVA)**
+**체민규 (공정성, SHAP, DiCE, 비용 함수, ANOVA)**
 - `config/actionability.yaml`과 Excel: DiCE가 바꿀 수 있는 변수(`dice_vary`), 방향, 단위, 허용 범위, 난이도, 단계당 개월. `spending_consistency`의 단위, 난이도, 기간은 멘토 검토가 필요한 팀 가정입니다.
 - 경로 목표: 점수 495 (`recourse_target_score`), 승인은 475 유지. 495를 목표로 한 경로는 재학습해도 90.8%가 승인을 유지합니다.
 - **거절 사유:** 권장 불가 변수 (SHAP 1위·2위인 `regular_payment_count`, `app_login_frequency`와 대출·신용한도 수, 부동산 담보대출 수)는 조언이 아니라 "참고(변경 불가)"로만 표시합니다. 시간 의존 경로는 기다리는 기간으로 표현합니다.
-- **공정성 미결 과제:** 연령대 균등 기회(EO) 격차가 0.121로 목표 0.10을 충족하지 못합니다 (DI 0.832와 성별은 통과). 완화 작업은 채민규 담당입니다.
+- **공정성 미결 과제:** 연령대 균등 기회(EO) 격차가 0.121로 목표 0.10을 충족하지 못합니다 (DI 0.832와 성별은 통과). 완화 작업은 체민규 담당입니다.
+- **경로 미결 과제:** 495 목표의 경로 커버리지가 12개월 87.9% (24개월 91.8%)로 목표 90%에 미달합니다 (점검 보고서 참고). DiCE 커버리지는 체민규 담당입니다.
 - DiCE에서 소득과 부채비율을 연결해야 합니다 (소득이 오르면 부채비율이 내려감).
-- ANOVA 데이터: `reports/cv_fold_auc.csv` (3 × 5 폴드, 세그먼트 all / thin / general)와 `reports/anova_handoff_ko.md`.
+- ANOVA 데이터: `reports/cv_fold_auc.csv` (5 × 5 폴드, 세그먼트 all / thin / general)와 `reports/anova_handoff_ko.md`.
 - 실제 성별 점검: `reports/german/oof_predictions.csv` (`reports/german_report_ko.md` 참고).
 
 **윤제진 (MLflow, Docker, FastAPI, Streamlit)**

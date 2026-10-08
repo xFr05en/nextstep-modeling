@@ -11,9 +11,9 @@
 
 | Check | Result | Verdict |
 |---|---|---|
-| 1. Recourse: can rejected test applicants reach 495 within 12 months with at most 3 variables? | 87.9% (thin-filers 87.0%) | Feasible for most; 357 of 2,941 cannot |
+| 1. Recourse coverage (charter goal ≥ 90%): rejected test applicants who can reach the target within 12 months with at most 3 variables | target 495: **87.9%** (thin-filers 87.0%); target 475: 90.0% | **Below 90% at the 495 target over 12 months; open item for 체민규** (24 months: 91.8%) |
 | 2. Fairness, gender | DI 0.995; EO gap 0.038 | **Pass** |
-| 2. Fairness, age band (20-34 / 35-54 / 55+) | DI 0.832; **EO gap 0.121** | DI passes; **EO fails the charter target (≤ 0.10). Open item for 채민규** |
+| 2. Fairness, age band (20-34 / 35-54 / 55+) | DI 0.832; **EO gap 0.121** | DI passes; **EO fails the charter target (≤ 0.10). Open item for 체민규** |
 | 3. Stability: approval flips within ±30 points under 3 retrained models | 26.8% | Above 10%; slower learning does not help (26.4%) |
 | 3. Path robustness (charter ≥ 80% of paths still approved) | minimal paths aimed at 495: **90.8%** under all 3 models | **Pass** (paths aimed at 475: 51.9%, would fail) |
 | 4. Sensitivity: thin-filer gain across mission r −0.30 to −0.50 and thin-filer definitions | +0.084 to +0.149 | Always ≥ +0.03; r = −0.50 cannot meet the 0.60 cap |
@@ -29,10 +29,21 @@
 | 12 months, target 495, without TIME_ONLY (tenure, insurance) | 75.3% | 72.4% | 726 (161 / 565) |
 | 12 months, target 475 (reference) | 90.0% | 89.7% | 293 (214 / 79) |
 
+**Coverage vs. the charter's 90% path-coverage goal** (share of rejected test applicants with at least one path of at most 3 variables):
+
+| Horizon | Target 475 (approval line) | Target 495 (recourse target) |
+|---|---|---|
+| 12 months | 90.0% (thin-filers 89.7%, others 90.1%) | **87.9%** (thin-filers 87.0%, others 88.0%) |
+| 24 months | 93.6% (thin-filers 95.1%, others 93.4%) | 91.8% (thin-filers 91.7%, others 91.9%) |
+
+- **At the recourse target 495, 12-month coverage is 87.9%, below the 90% goal.** Over 24 months it is 91.8%. At the 475 line, 12-month coverage is exactly 90.0%, with thin-filers at 89.7%.
+- The gap comes mostly from the 3-variable limit (238 of the 357 at 12 months / 495 would need 4 or more variables); 119 cannot reach 495 even with all 8, almost all because of 60+ day late payments.
+- **Open item for 체민규:** DiCE path coverage is his metric. Options to discuss: allow 4 variables, a 24-month horizon, or report coverage at 475 with the 495 margin as a robustness target. Nothing was changed here.
+
 - Variables needed (main view): 1 for 1,663 applicants, 2 for 700, 3 for 221.
 - Most common paths: `spending_consistency` alone (1,329), insurance months + spending consistency (624), insurance months alone (324).
 - **What blocks the rest:** 83% of the 357 have a 60+ day late payment, which cannot decrease; their median score is 121, 374 points short.
-- **Note for 채민규:** raising income also lowers the debt ratio in reality, while this search moves them independently; DiCE should model that link. TIME_ONLY paths (insurance months) must be phrased as waiting time, not as an action.
+- **Note for 체민규:** raising income also lowers the debt ratio in reality, while this search moves them independently; DiCE should model that link. TIME_ONLY paths (insurance months) must be phrased as waiting time, not as an action.
 
 ## 2. Fairness (test-set decisions of the shipped model)
 
@@ -57,7 +68,7 @@ DI 0.995 (pass); TPR difference 0.003, FPR difference 0.038, EO gap 0.038 (pass)
 
 - DI = 0.832 (20 to 34 vs. 55+): passes the 0.8 rule.
 - **EO: TPR difference 0.096, FPR difference 0.121, so the EO gap is 0.121. This fails the charter target of 0.10 or less.** Among people who repaid, the youngest are approved 85.7% of the time vs. 95.4% for 55+; among defaulters, older applicants are approved more often (26.9% vs. 14.9%).
-- **Status: fail, open item for 채민규's mitigation work** (for example reweighting or group thresholds, tuned on validation and reported on test). Nothing in the data, simulator or model was tuned to pass it.
+- **Status: fail, open item for 체민규's mitigation work** (for example reweighting or group thresholds, tuned on validation and reported on test). Nothing in the data, simulator or model was tuned to pass it.
 
 ## 3. Stability
 
@@ -103,7 +114,8 @@ At −0.50 the variables are so strongly tied to default that even without a sha
 
 ## 5. Open items
 
-1. **Age-band EO gap 0.121 > 0.10 (fail):** 채민규's mitigation.
+1. **Age-band EO gap 0.121 > 0.10 (fail):** 체민규's mitigation.
+1b. **Recourse coverage 87.9% < 90% (12 months, target 495):** 체민규 (DiCE coverage); see section 1.
 2. **Grey zone around 475** (26.8% of near-cutoff decisions flip on retraining): team decision.
-3. **Income and debt-ratio link in DiCE:** 채민규.
+3. **Income and debt-ratio link in DiCE:** 체민규.
 4. **TIME_ONLY paths** are phrased as waiting time; the NOT_RECOMMENDED variables appear only as "reference (not changeable)" in rejection reasons.

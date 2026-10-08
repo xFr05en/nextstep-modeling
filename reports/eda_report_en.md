@@ -62,4 +62,4 @@ Pearson r is distorted by extreme values. Debt ratio, for example, has Pearson -
 
 - **Step 3:** correlation definition decided: observed Pearson r −0.32 for the mission variables (see section 3).
 - **Step 5:** watch the AUC cost of the debt ratio constraint first. Logistic Regression needs a log transform or cap for debt ratio, income and utilization because of the skew.
-- **Fairness (채민규):** age correlates with utilization and dependents, so removing age alone will not remove age effects.
+- **Fairness (체민규):** age correlates with utilization and dependents, so removing age alone will not remove age effects.

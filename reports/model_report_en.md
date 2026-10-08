@@ -2,7 +2,7 @@
 
 > Educational use only. Not for real financial decisions. The alternative variables are simulated from the real outcome for every row, including the test set (as in the mission's example), so results with alternative data are optimistic. The GMSC-only model is the realistic reference.
 
-- Code: `src/train.py` (run `python -m src.train --stage all`, about 7 minutes), settings in `config/train.yaml`, scoring in `config/scoring.yaml`
+- Code: `src/train.py` (run `python -m src.train --stage all`, about 13 minutes), settings in `config/train.yaml`, scoring in `config/scoring.yaml`
 - Figures and SHAP: `python notebooks/model_report.py` (figures 11 and 12, `reports/shap_global_top10.csv`)
 - Results: `reports/final_summary.json` (official), `reports/model_comparison.csv`, `reports/monotonic_results.csv`, `reports/grade_table.csv`, `reports/cv_fold_auc.csv`
 - Model: `models/xgboost_v1.0.joblib`. MLflow guide: `reports/mlflow_schema_en.md`
@@ -11,7 +11,7 @@
 
 | Part | Rows | Used for |
 |---|---|---|
-| Train (70%) | 104,999 | model comparison: 27 runs, 3 × 5-fold stratified CV (target × thin-filer), the winner rule |
+| Train (70%) | 104,999 | model comparison: 27 runs, 5 × 5-fold repeated stratified CV (target × thin-filer), the winner rule |
 | Validation (15%) | 22,500 | decisions: monotonic AUC loss (and any future threshold or fairness tuning) |
 | Test (15%) | 22,500 | touched once, by the shipped model trained on train + validation |
 
@@ -20,7 +20,7 @@
 - 21 features: 14 GMSC (10 original + 4 cleaning flags) and 7 alternative variables. `autopay_ratio` and `gender_female` are in the data but not model inputs.
 - Fixed hyperparameters (no per-run tuning). The score-475 approval cutoff is a fixed rule from `config/scoring.yaml`; no test data sets any threshold.
 
-## 2. Model comparison (CV on train, 15 folds; Figure 11)
+## 2. Model comparison (CV on train, 25 folds; Figure 11)
 
 | Model | Imbalance | GMSC only | Alternative only | Both | Thin-filer gain | Brier (both) | F1 (both) |
 |---|---|---|---|---|---|---|---|
@@ -28,13 +28,13 @@
 | LR | class weights | 0.855 | 0.915 | 0.940 | +0.099 | 0.098 | 0.235 |
 | LR | SMOTE | 0.855 | 0.914 | 0.939 | +0.100 | 0.096 | 0.245 |
 | LightGBM | none | 0.862 | 0.911 | 0.942 | +0.090 | 0.036 | 0.535 |
-| LightGBM | class weights | 0.861 | 0.911 | 0.941 | +0.090 | 0.082 | 0.286 |
-| LightGBM | SMOTE | 0.854 | 0.910 | 0.942 | +0.107 | 0.036 | 0.508 |
+| LightGBM | class weights | 0.861 | 0.911 | 0.941 | +0.090 | 0.082 | 0.287 |
+| LightGBM | SMOTE | 0.854 | 0.910 | 0.942 | +0.106 | 0.036 | 0.507 |
 | **XGBoost** | **none** | **0.864** | **0.913** | **0.942** | **+0.090** | **0.036** | **0.533** |
-| XGBoost | class weights | 0.862 | 0.912 | 0.942 | +0.091 | 0.087 | 0.260 |
-| XGBoost | SMOTE | 0.851 | 0.911 | 0.941 | +0.109 | 0.037 | 0.468 |
+| XGBoost | class weights | 0.862 | 0.912 | 0.942 | +0.091 | 0.087 | 0.261 |
+| XGBoost | SMOTE | 0.851 | 0.911 | 0.941 | +0.108 | 0.037 | 0.468 |
 
-AUC is the mean over 15 folds (SD 0.002 to 0.003 for every "both" run).
+AUC is the mean over 25 folds (SD about 0.003 for every "both" run).
 
 - **Adding alternative data matters far more than the model:** about +0.08 AUC; the three algorithms differ by at most 0.003.
 - **Imbalance handling does not help AUC.** Class weights inflate the predicted probabilities (Brier 0.036 → 0.087) and lower F1 at the fixed cutoff, because more applicants fall below it.

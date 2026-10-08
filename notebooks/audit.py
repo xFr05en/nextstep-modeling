@@ -198,7 +198,7 @@ def check_recourse(test: pd.DataFrame, est) -> tuple[dict, dict]:
     results, paths = {}, {}
     for label, sp, h, tgt in [("main_12m_495", specs, 12, TARGET_SCORE), ("all_24m_495", specs, 24, TARGET_SCORE),
                               ("no_time_only_12m_495", no_time, 12, TARGET_SCORE),
-                              ("reference_12m_475", specs, 12, CUTOFF)]:
+                              ("reference_12m_475", specs, 12, CUTOFF), ("reference_24m_475", specs, 24, CUTOFF)]:
         res, feas, chosen = recourse_view(est, X_rej, thin_rej, sp, h, label, tgt)
         if (~feas).any():
             res["not_feasible_profile"] = blocker_profile(X_rej, s_rej, ~feas, tgt)

@@ -8,7 +8,7 @@ Part of team 4무원's XAI-based alternative credit scoring system for thin-file
 
 1. Put `cs-training.csv` (Kaggle "Give Me Some Credit") in `data/raw/`. For the secondary German Credit model, also put `german.data` there ([UCI repository](https://archive.ics.uci.edu/dataset/144/statlog+german+credit+data)).
 2. Setup: macOS/Linux `bash setup.sh`, Windows `setup.bat`. Then `source .venv/bin/activate`.
-3. Run the pipeline in order (about 10 minutes, fully seeded):
+3. Run the pipeline in order (about 15 minutes, fully seeded):
 
 ```bash
 python -m src.data
@@ -88,7 +88,7 @@ XGBoost, 21 features, no resampling, 13 monotonic constraints; trained on train 
 | `config/data.yaml` | Cleaning rules (special codes, utilization threshold, minimum age) |
 | `config/simulator.yaml` | The 8 alternative variables (distributions, observed / latent correlation targets, shared factor), credit link, `thin_filer_ratio` / `thin_filer_mode` / `bias_ratio`, thin-filer rules |
 | `config/actionability.yaml` | Per-variable actionability class, direction, step, bounds, monotone sign, `dice_vary`, `model_feature`, notes (Korean and English) |
-| `config/train.yaml` | Split (70/15/15), CV (3 × 5-fold), model grid, hyperparameters, winner rule, model version, MLflow experiments |
+| `config/train.yaml` | Split (70/15/15), CV (5 × 5-fold), model grid, hyperparameters, winner rule, model version, MLflow experiments |
 | `config/scoring.yaml` | PD to score (0 to 1000), grades A to E, approval rule (score ≥ 475), recourse target (495) |
 | `config/german.yaml` | German Credit secondary model |
 | `.env.example` | `MLFLOW_TRACKING_URI` (local `./mlruns` by default; the compose MLflow server in Docker) |
@@ -127,13 +127,14 @@ Every report also has a Korean version (`_ko`).
 
 **Everyone:** `data/processed/split.csv` (row_id, split) defines train / validation / test. Tune thresholds and fairness mitigation on **validation**; report them on **test**.
 
-**채민규 (fairness, SHAP, DiCE, cost function, ANOVA)**
+**체민규 (fairness, SHAP, DiCE, cost function, ANOVA)**
 - `config/actionability.yaml` and the Excel files: which variables DiCE may vary (`dice_vary`), direction, step, bounds, difficulty, months per step. `spending_consistency`'s step, difficulty and duration are team assumptions that need mentor review.
 - Recourse target: score 495 (`recourse_target_score`); approval stays at 475. Paths aimed at 495 stay approved 90.8% of the time under retraining.
 - **Rejection reasons:** the NOT_RECOMMENDED variables (`regular_payment_count`, `app_login_frequency`, which are SHAP #1 and #2, plus open credit lines and real estate loans) appear only under "reference (not changeable)", never as advice. TIME_ONLY paths are phrased as waiting time.
 - **Open fairness item:** the age-band equalized-odds gap is 0.121, which fails the 0.10 target (DI 0.832 passes; gender passes). Mitigation is yours.
+- **Open recourse item:** path coverage at the 495 target is 87.9% over 12 months (91.8% over 24 months), below the 90% goal (see the audit report). DiCE coverage is yours.
 - DiCE should link income and debt ratio (raising income lowers the ratio).
-- ANOVA data: `reports/cv_fold_auc.csv` (3 × 5 folds, segments all / thin / general) and `reports/anova_handoff_en.md`.
+- ANOVA data: `reports/cv_fold_auc.csv` (5 × 5 folds, segments all / thin / general) and `reports/anova_handoff_en.md`.
 - Real-gender check: `reports/german/oof_predictions.csv` (see `reports/german_report_en.md`).
 
 **윤제진 (MLflow, Docker, FastAPI, Streamlit)**

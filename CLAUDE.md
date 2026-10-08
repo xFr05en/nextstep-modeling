@@ -5,7 +5,7 @@
 - System: XAI-based alternative credit scoring for thin-filers, with Actionable Recourse (approval paths built only from changes the applicant can make).
 - This repo covers MY part only: data loading, alternative-data simulator, actionability metadata, monotonic-constraint model training.
 - Teammates consume my outputs:
-  - 채민규 (fairness, SHAP, DiCE recourse, cost function): needs `config/actionability.yaml` + trained model.
+  - 체민규 (fairness, SHAP, DiCE recourse, cost function): needs `config/actionability.yaml` + trained model.
   - 윤제진 (MLflow registry, Docker Compose, FastAPI, Streamlit): will create the team repo in week 6. Keep this code drop-in ready.
 
 ## Data (place in `data/raw/`, never commit)
@@ -26,12 +26,12 @@
 - Simulator parameters: thin_filer_ratio (default None, subsample mode; mask mode for demonstration only) and bias_ratio (default 0.0; shifts women and age 20-34 down by bias_ratio SD).
 - Gender: simulated binary, independent of the target.
 - Thin-filer: proxy NumberOfOpenCreditLinesAndLoans <= 2 AND NumberRealEstateLoansOrLines == 0 for every official number; the mission rule is implemented (is_thin_filer_mission) but flags 0% of raw GMSC.
-- Split: stratify=y 70/15/15 (data/processed/split.csv). Model comparison: 3 x 5-fold CV inside train. Validation: monotonic loss and any tuning. Test: touched once by the shipped model (fit on train+validation). Official results are test-set figures with bootstrap CIs.
+- Split: stratify=y 70/15/15 (data/processed/split.csv). Model comparison: 5 x 5-fold repeated CV inside train. Validation: monotonic loss and any tuning. Test: touched once by the shipped model (fit on train+validation). Official results are test-set figures with bootstrap CIs.
 - Late-payment counts: "cannot decrease" (charter rule). Age: feature, no monotonic constraint (protected).
 - Monotonic constraints: only from the `monotone` field in the YAML (13 constraints). Model output = probability of default.
 - Scoring: approval at score >= 475 (fixed rule, scoring.yaml); recourse target 495.
 - Model file: models/xgboost_v1.0.joblib (version in config/train.yaml). MLflow: one experiment per algorithm + final + audit; MLFLOW_TRACKING_URI.
-- Open items for teammates: age-band EO gap 0.121 > 0.10 (채민규); grey zone around 475 (team); Model Registry (윤제진); ANOVA (채민규, data in reports/cv_fold_auc.csv).
+- Open items for teammates: age-band EO gap 0.121 > 0.10 (체민규); recourse coverage 87.9% < 90% at target 495 over 12 months (체민규, DiCE); grey zone around 475 (team); Model Registry (윤제진); ANOVA (체민규, data in reports/cv_fold_auc.csv).
 
 ## Required targets (from the team charter)
 - AUC >= 0.78, KS >= 0.28, thin-filer AUC lift >= +0.03 (with vs. without alternative data), PSI < 0.1.

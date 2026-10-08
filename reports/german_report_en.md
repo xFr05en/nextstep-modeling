@@ -6,7 +6,7 @@
 
 - Code: `src/german.py` (run `python -m src.german`, about 20 seconds), settings and label mapping in `config/german.yaml`
 - Data: download `german.data` from UCI into `data/raw/` (gitignored, not committed)
-- Outputs: `reports/german/oof_predictions.csv` (for 채민규), `reports/german/metrics.json`
+- Outputs: `reports/german/oof_predictions.csv` (for 체민규), `reports/german/metrics.json`
 - Tests: `tests/test_german.py`
 
 ## 1. Data
@@ -26,7 +26,7 @@
 | Foreign worker: yes | 963 | 30.7% |
 | Foreign worker: no | 37 | 10.8% |
 
-These are descriptive only. The fairness metrics are 채민규's work.
+These are descriptive only. The fairness metrics are 체민규's work.
 
 ## 2. Features
 
@@ -60,7 +60,7 @@ Logistic regression baseline and XGBoost (300 trees, depth 3, learning rate 0.05
 - The constraints cost 0.0009 AUC (SD 0.005). On the full data, the constrained model makes 0 wrong-direction moves on duration and installment rate, against 344 and 49 without constraints.
 - Single folds range from 0.72 to 0.86 AUC because each test fold has only 200 rows. Use the averages, not single folds.
 
-## 4. File for 채민규: `reports/german/oof_predictions.csv`
+## 4. File for 체민규: `reports/german/oof_predictions.csv`
 
 | Column | Meaning |
 |---|---|
@@ -73,7 +73,7 @@ Logistic regression baseline and XGBoost (300 trees, depth 3, learning rate 0.05
 | `foreign_worker` | yes / no (not a model feature) |
 
 - The averaged PD is well calibrated: mean 29.5% (XGBoost) and 30.0% (LR) against an actual 30%. Its AUC is 0.795 (XGBoost) and 0.783 (LR), slightly higher than single runs because averaging reduces noise.
-- **No approval cutoff and no decision column.** The threshold is for 채민규 to choose.
+- **No approval cutoff and no decision column.** The threshold is for 체민규 to choose.
 
 **UCI cost matrix, relevant for the threshold:** UCI states that approving a bad borrower is **5 times worse** than rejecting a good one (cost 5 vs. 1). With calibrated PD, approving costs 5 × PD and rejecting costs 1 × (1 − PD), so the break-even is **PD = 1/6 ≈ 0.167**, not 0.5. A cost-aware threshold therefore rejects many more applicants than a 0.5 cutoff, which changes approval rates per group and so the fairness picture. This is information only; no cutoff was applied.
 

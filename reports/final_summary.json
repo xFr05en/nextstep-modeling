@@ -39,9 +39,9 @@
   },
   "cv_on_train": {
     "auc_mean": 0.9425,
-    "auc_std": 0.0025,
-    "ks_mean": 0.7349,
-    "thin_auc_mean": 0.9386
+    "auc_std": 0.0029,
+    "ks_mean": 0.735,
+    "thin_auc_mean": 0.9391
   },
   "test": {
     "auc": 0.9492,

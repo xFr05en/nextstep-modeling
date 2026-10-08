@@ -163,6 +163,47 @@
     },
     "minimal_path_reaches_target": 1.0
   },
+  "reference_24m_475": {
+    "view": "reference_24m_475",
+    "horizon_months": 24,
+    "target_score": 475,
+    "variables": [
+      "RevolvingUtilizationOfUnsecuredLines",
+      "DebtRatio",
+      "MonthlyIncome",
+      "telecom_payment_rate",
+      "utility_payment_rate",
+      "telecom_tenure_months",
+      "insurance_paid_months",
+      "spending_consistency"
+    ],
+    "rejected": 2941,
+    "feasible_share": 0.9361,
+    "feasible_share_thin": 0.9507,
+    "feasible_share_not_thin": 0.9335,
+    "not_feasible": 188,
+    "vars_needed": {
+      "1": 1924,
+      "2": 618,
+      "3": 211
+    },
+    "blocked_by_3_var_limit": 182,
+    "blocked_even_with_all_vars": 6,
+    "top_paths": {
+      "spending_consistency": 1528,
+      "insurance_paid_months + spending_consistency": 477,
+      "insurance_paid_months": 336,
+      "RevolvingUtilizationOfUnsecuredLines + insurance_paid_months + spending_consistency": 135,
+      "RevolvingUtilizationOfUnsecuredLines + spending_consistency": 127
+    },
+    "not_feasible_profile": {
+      "rows": 188,
+      "median_score": 73.5,
+      "median_points_short": 401.5,
+      "share_serious_late_60plus": 0.9043,
+      "share_special_code_96_98": 0.0106
+    }
+  },
   "test_rows": 22500,
   "rejected": 2941,
   "rejected_share": 0.1307,
