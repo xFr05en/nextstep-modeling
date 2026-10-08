@@ -5,6 +5,7 @@ seed: 42
 # threshold or fairness tuning). test: touched once, by the shipped model (fit on train+validation).
 split: {train: 0.70, validation: 0.15, test: 0.15, seed: 42}
 n_splits: 5                 # CV inside train, stratified on target x thin_filer; same folds for every run
+cv_repeats: 1               # >1 repeats the folds with new shuffles (more ANOVA replicates); off by default
 data: data/processed/gmsc_sim.csv
 target: SeriousDlqin2yrs
 thin_col: thin_filer
@@ -45,6 +46,7 @@ mlflow:
     audit: nextstep-audit
 outputs:
   comparison: reports/model_comparison.csv
+  cv_fold_auc: reports/cv_fold_auc.csv   # ANOVA handoff: run, model, features, resampling, repeat, fold, segment, n_rows, n_defaults, auc
   monotonic: reports/monotonic_results.csv
   final_summary: reports/final_summary.json
   grade_table: reports/grade_table.csv

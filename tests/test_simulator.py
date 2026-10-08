@@ -8,7 +8,7 @@ import pytest
 
 from src.features import add_thin_filer_flag, feature_sets
 from src.scoring import load_config as load_scoring, pd_to_score
-from src.simulator import credit_score, load_config, simulate, validate_scenario
+from src.data.simulator import credit_score, load_config, simulate, validate_scenario
 from tests.helpers import clean_data, final_model, sim_data
 
 CFG = load_config()

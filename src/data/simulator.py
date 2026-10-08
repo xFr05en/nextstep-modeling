@@ -15,7 +15,7 @@ g is searched so the inter-correlation of the mission variables hits shared_fact
 Note: the target is used for every row, including rows later held out for testing,
 as in the mission's own example simulator. GMSC-only results are the realistic reference.
 
-Run:  python -m src.simulator   (needs data/processed/gmsc_clean.csv from src.data)
+Run:  python -m src.data.simulator   (needs data/processed/gmsc_clean.csv from python -m src.data)
 """
 from __future__ import annotations
 
@@ -31,7 +31,7 @@ from sklearn.metrics import roc_auc_score
 from src.evaluate import pearson
 from src.features import add_thin_filer_flag, is_thin_filer_mission
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = ROOT / "config" / "simulator.yaml"
 
 
@@ -328,6 +328,24 @@ def simulate(df: pd.DataFrame, cfg: dict, b: float | None = None, target: str = 
         "gender_corr_target": round(pearson(out["gender_female"], y), 4),
     }
     return out, info
+
+
+def generate_alternative_data(df: pd.DataFrame, target_col: str = "SeriousDlqin2yrs",
+                              thin_filer_ratio: float | None = None, bias_ratio: float = 0.0,
+                              cfg: dict | None = None, **kwargs) -> pd.DataFrame:
+    """Mission-style entry point (same name and arguments as the mission's example simulator).
+
+    Thin wrapper around simulate(); returns the data frame with the alternative variables and
+    gender added. Extra keyword arguments (b, thin_filer_mode) go to simulate().
+
+    Our defaults differ from the mission example (thin_filer_ratio=0.3, bias_ratio=0.1) on purpose:
+    thin_filer_ratio=None keeps the natural thin-filer share (7.71% with the proxy rule) and
+    bias_ratio=0.0 adds no group shift, because the final model must be trained on the natural
+    composition and on unbiased data. Other values are for scenario analysis only.
+    """
+    out, _ = simulate(df, cfg or load_config(), target=target_col, thin_filer_ratio=thin_filer_ratio,
+                      bias_ratio=bias_ratio, **kwargs)
+    return out
 
 
 def main() -> None:

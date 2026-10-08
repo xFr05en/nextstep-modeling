@@ -4,7 +4,7 @@ import json
 import pandas as pd
 import pytest
 
-from src.train import make_split
+from src.data.preprocessor import make_split
 from tests.helpers import ROOT, load_yaml, require, sim_data
 
 CFG = load_yaml("train.yaml")

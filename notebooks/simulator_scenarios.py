@@ -21,7 +21,7 @@ import pandas as pd  # noqa: E402
 
 from src.features import add_thin_filer_flag, feature_sets  # noqa: E402
 from src.scoring import load_config as load_scoring, pd_to_score  # noqa: E402
-from src.simulator import load_config, simulate  # noqa: E402
+from src.data.simulator import load_config, simulate  # noqa: E402
 from src.train import cross_validate, load_yaml, make_folds, monotone_vector  # noqa: E402
 
 TARGET = "SeriousDlqin2yrs"

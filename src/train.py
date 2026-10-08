@@ -31,16 +31,14 @@ from imblearn.over_sampling import SMOTE  # noqa: E402
 from imblearn.pipeline import Pipeline  # noqa: E402
 from lightgbm import LGBMClassifier  # noqa: E402
 from mlflow.models import infer_signature  # noqa: E402
-from sklearn.base import BaseEstimator, TransformerMixin  # noqa: E402
 from sklearn.calibration import CalibratedClassifierCV  # noqa: E402
 from sklearn.metrics import brier_score_loss, roc_auc_score  # noqa: E402
-from sklearn.impute import SimpleImputer  # noqa: E402
 from sklearn.linear_model import LogisticRegression  # noqa: E402
-from sklearn.model_selection import StratifiedKFold, train_test_split  # noqa: E402
-from sklearn.preprocessing import StandardScaler  # noqa: E402
+from sklearn.model_selection import RepeatedStratifiedKFold, StratifiedKFold  # noqa: E402
 from xgboost import XGBClassifier  # noqa: E402
 
 from src import evaluate as ev  # noqa: E402
+from src.data.preprocessor import LogCap, make_imputer, make_scaler, make_split, save_split  # noqa: E402,F401
 from src.features import feature_sets  # noqa: E402
 from src.scoring import load_config as load_scoring, score_frame  # noqa: E402
 
@@ -55,25 +53,6 @@ def load_yaml(name: str) -> dict:
 
 
 # ---- Pipeline pieces ----
-
-class LogCap(BaseEstimator, TransformerMixin):
-    """log1p (values below 0 clipped to 0), then cap at a quantile learned on the training fold."""
-
-    def __init__(self, cols=(), q: float = 0.99):
-        self.cols = cols
-        self.q = q
-
-    def fit(self, X, y=None):
-        X = np.asarray(X, float)
-        self.caps_ = {c: np.quantile(np.log1p(np.clip(X[:, c], 0, None)), self.q) for c in self.cols}
-        return self
-
-    def transform(self, X):
-        X = np.array(X, float, copy=True)
-        for c, cap in self.caps_.items():
-            X[:, c] = np.minimum(np.log1p(np.clip(X[:, c], 0, None)), cap)
-        return X
-
 
 def make_model(name: str, resampling: str, monotone: list[int] | None, cfg: dict):
     params, seed = cfg["models"][name], cfg["seed"]
@@ -91,12 +70,12 @@ def make_model(name: str, resampling: str, monotone: list[int] | None, cfg: dict
 
 def build_pipeline(name: str, features: list[str], resampling: str, cfg: dict,
                    monotone: list[int] | None = None) -> Pipeline:
-    steps = [("impute", SimpleImputer(strategy="median"))]
+    steps = [("impute", make_imputer())]
     if name == "lr":
         idx = [features.index(c) for c in cfg["lr_log_cap_columns"] if c in features]
         steps.append(("logcap", LogCap(cols=idx, q=cfg["lr_cap_quantile"])))
     if name == "lr" or resampling == "smote":
-        steps.append(("scale", StandardScaler()))  # SMOTE uses distances, so scale first
+        steps.append(("scale", make_scaler()))  # SMOTE uses distances, so scale first
     if resampling == "smote":
         steps.append(("smote", SMOTE(random_state=cfg["seed"])))
     steps.append(("model", make_model(name, resampling, monotone, cfg)))
@@ -120,28 +99,25 @@ def monotone_vector(features: list[str], dropped: tuple[str, ...] = ()) -> list[
 
 # ---- Cross-validation ----
 
-def make_split(df: pd.DataFrame, cfg: dict) -> pd.Series:
-    """Stratified (stratify=y) train / validation / test labels, e.g. 70:15:15. Index = df.index."""
-    sp = cfg["split"]
-    y = df[cfg["target"]]
-    rest, test = train_test_split(df.index, test_size=sp["test"], stratify=y, random_state=sp["seed"])
-    val_share = sp["validation"] / (sp["train"] + sp["validation"])
-    train, val = train_test_split(rest, test_size=val_share, stratify=y.loc[rest], random_state=sp["seed"])
-    labels = pd.Series("train", index=df.index, name="split")
-    labels.loc[val] = "validation"
-    labels.loc[test] = "test"
-    return labels
-
-
-def save_split(labels: pd.Series, cfg: dict) -> None:
-    out = ROOT / cfg["outputs"]["split"]
-    pd.DataFrame({"row_id": labels.index, "split": labels.to_numpy()}).to_csv(out, index=False)
-
-
 def make_folds(df: pd.DataFrame, cfg: dict) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Stratified on target x thin_filer. cv_repeats > 1 repeats the 5 folds with new shuffles
+    (fold k belongs to repeat k // n_splits); cv_repeats = 1 gives the plain StratifiedKFold."""
     strata = df[cfg["target"]].to_numpy() * 2 + df[cfg["thin_col"]].to_numpy()
+    repeats = int(cfg.get("cv_repeats", 1))
+    if repeats > 1:
+        rskf = RepeatedStratifiedKFold(n_splits=cfg["n_splits"], n_repeats=repeats, random_state=cfg["seed"])
+        return list(rskf.split(df, strata))
     skf = StratifiedKFold(n_splits=cfg["n_splits"], shuffle=True, random_state=cfg["seed"])
     return list(skf.split(df, strata))
+
+
+def segment_rows(y_te, p_te, thin_te) -> list[dict]:
+    """AUC per segment (all / thin / general) on one fold's held-out rows."""
+    out = []
+    for seg, m in (("all", np.ones(len(y_te), bool)), ("thin", thin_te), ("general", ~thin_te)):
+        out.append({"segment": seg, "n_rows": int(m.sum()), "n_defaults": int(y_te[m].sum()),
+                    "auc": float(roc_auc_score(y_te[m], p_te[m]))})
+    return out
 
 
 def cross_validate(df, folds, cfg, name, features, resampling, monotone=None, calibrate=False):
@@ -150,7 +126,7 @@ def cross_validate(df, folds, cfg, name, features, resampling, monotone=None, ca
     y = df[cfg["target"]].to_numpy()
     thin = df[cfg["thin_col"]].to_numpy() == 1
     oof = np.zeros(len(df))
-    rows = []
+    rows, segments = [], []
     t0 = time.time()
     for k, (tr, te) in enumerate(folds):
         est = make_estimator(name, features, resampling, cfg, y[tr], monotone, calibrate)
@@ -159,8 +135,10 @@ def cross_validate(df, folds, cfg, name, features, resampling, monotone=None, ca
         p_te = est.predict_proba(X.iloc[te])[:, 1]
         oof[te] = p_te
         rows.append({"fold": k, **ev.fold_metrics(y[te], p_te, p_tr, thin[te])})
+        segments.extend({"cv_index": k, **r} for r in segment_rows(y[te], p_te, thin[te]))
     per_fold = pd.DataFrame(rows)
     per_fold.attrs["seconds"] = round(time.time() - t0, 1)
+    per_fold.attrs["segments"] = segments
     return per_fold, oof
 
 
@@ -247,7 +225,7 @@ def pick_winner(results: pd.DataFrame, cfg: dict) -> pd.Series:
 
 
 def stage_compare(df, folds, cfg, fs) -> pd.DataFrame:
-    rows = []
+    rows, fold_auc = [], []
     for name in cfg["model_names"]:
         for res in cfg["resampling"]:
             cv = {s: cross_validate(df, folds, cfg, name, fs[s], res) for s in cfg["feature_sets"]}
@@ -261,10 +239,15 @@ def stage_compare(df, folds, cfg, fs) -> pd.DataFrame:
                 run = f"{name}__{s}__{res}"
                 run_id = log_run(cfg, "compare", run, {"model": name, "feature_set": s, "resampling": res,
                                                        "monotone_set": "none"}, per_fold, extra, fs[s])
+                for r in per_fold.attrs["segments"]:
+                    fold_auc.append({"run": run, "model": name, "features": s, "resampling": res,
+                                     "repeat": r["cv_index"] // cfg["n_splits"], "fold": r["cv_index"] % cfg["n_splits"],
+                                     **{k: r[k] for k in ("segment", "n_rows", "n_defaults", "auc")}})
                 rows.append({"run_name": run, "run_id": run_id, "model": name, "features": s, "resampling": res,
                              **summarize(per_fold), **extra, "seconds": per_fold.attrs["seconds"]})
                 print(f"{run:32s} AUC {rows[-1]['auc_mean']:.4f}  KS {rows[-1]['ks_mean']:.4f}  "
                       f"thinAUC {rows[-1]['thin_auc_mean']:.4f}  {per_fold.attrs['seconds']}s")
+    pd.DataFrame(fold_auc).round({"auc": 6}).to_csv(ROOT / cfg["outputs"]["cv_fold_auc"], index=False)
     out = pd.DataFrame(rows)
     log_best_per_algorithm(df, out, cfg, fs)
     out.drop(columns="run_id").round(5).to_csv(ROOT / cfg["outputs"]["comparison"], index=False)

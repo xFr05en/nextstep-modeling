@@ -2,7 +2,7 @@
 
 > 교육용으로만 사용합니다. 실제 금융 의사결정에 사용하지 마십시오. 모든 대체 변수와 성별은 관측값이 아닌 시뮬레이션 값입니다.
 
-- 코드: `src/simulator.py` (실행: `python -m src.simulator`), 설정: `config/simulator.yaml`
+- 코드: `src/data/simulator.py` (실행: `python -m src.data.simulator`), 설정: `config/simulator.yaml`
 - 상충 관계 분석과 그림: `notebooks/simulator_report.py` (실행: `python notebooks/simulator_report.py`)
 - 결과물: `data/processed/gmsc_sim.csv` (주 데이터셋, b = 0.30), `data/processed/gmsc_sim_target_only.csv` (비교용, b = 0)
 - 수치: `reports/simulator_summary.json`, `reports/simulator_sweep.json`. 그림 08~10: `reports/figures/` (한국어, 영어)

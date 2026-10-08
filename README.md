@@ -14,7 +14,7 @@
 python -m src.data
 ```
 ```bash
-python -m src.simulator
+python -m src.data.simulator
 ```
 ```bash
 python -m src.train --stage all

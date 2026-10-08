@@ -2,7 +2,7 @@
 
 > Educational use only. Not for real financial decisions. All alternative variables and gender are simulated, not observed.
 
-- Code: `src/simulator.py` (run `python -m src.simulator`), settings in `config/simulator.yaml`
+- Code: `src/data/simulator.py` (run `python -m src.data.simulator`), settings in `config/simulator.yaml`
 - Trade-off sweep and figures: `notebooks/simulator_report.py` (run `python notebooks/simulator_report.py`)
 - Outputs: `data/processed/gmsc_sim.csv` (main, b = 0.30), `data/processed/gmsc_sim_target_only.csv` (comparison, b = 0)
 - Numbers: `reports/simulator_summary.json`, `reports/simulator_sweep.json`. Figures 08 to 10 in `reports/figures/` (Korean and English)

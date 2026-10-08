@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.features import add_thin_filer_flag, is_thin_filer_mission, is_thin_filer_proxy
-from src.simulator import load_config, simulate
+from src.data.simulator import load_config, simulate
 from tests.helpers import ROOT, clean_data, require
 
 CFG = load_config()

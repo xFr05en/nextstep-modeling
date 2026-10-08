@@ -5,7 +5,8 @@ import pytest
 from imblearn.over_sampling import SMOTE
 
 from src.features import feature_sets
-from src.train import LogCap, build_pipeline, make_folds
+from src.data.preprocessor import LogCap
+from src.train import build_pipeline, make_folds
 from tests.helpers import load_yaml
 
 CFG = load_yaml("train.yaml")

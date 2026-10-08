@@ -14,7 +14,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-HINT = "run `python -m src.data`, `python -m src.simulator` and `python -m src.train --stage all` first"
+HINT = "run `python -m src.data`, `python -m src.data.simulator` and `python -m src.train --stage all` first"
 
 
 def require(path: Path) -> Path:

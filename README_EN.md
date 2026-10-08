@@ -14,7 +14,7 @@ Part of team 4무원's XAI-based alternative credit scoring system for thin-file
 python -m src.data
 ```
 ```bash
-python -m src.simulator
+python -m src.data.simulator
 ```
 ```bash
 python -m src.train --stage all

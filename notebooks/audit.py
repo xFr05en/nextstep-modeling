@@ -28,7 +28,7 @@ from sklearn.model_selection import train_test_split  # noqa: E402
 from src import evaluate as ev  # noqa: E402
 from src.features import add_thin_filer_flag, feature_sets  # noqa: E402
 from src.scoring import load_config as load_scoring, pd_to_score, score_frame  # noqa: E402
-from src.simulator import load_config as load_sim, simulate  # noqa: E402
+from src.data.simulator import load_config as load_sim, simulate  # noqa: E402
 from src.train import (cross_validate, load_yaml, make_estimator, make_folds, monotone_vector,  # noqa: E402
                        pick_winner, setup_mlflow, stage_compare, stage_monotonic)
 

@@ -25,7 +25,7 @@ import yaml  # noqa: E402
 from eda import BLUE, DIVERGING, INK, INK_2, ORANGE, SHORT, TEXT, save, set_style  # noqa: E402
 from src.evaluate import thin_filer_auc_lift  # noqa: E402
 from src.features import add_thin_filer_flag, feature_sets  # noqa: E402
-from src.simulator import credit_score, load_config, simulate  # noqa: E402
+from src.data.simulator import credit_score, load_config, simulate  # noqa: E402
 
 ALT_SHORT = {
     "en": {
