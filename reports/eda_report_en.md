@@ -42,7 +42,7 @@ All constrained features move in the direction the YAML says. **Debt ratio is th
 | Age | -0.115 | -0.117 |
 | All others | below 0.05 | below 0.07 |
 
-**Important for Step 3:** only one real feature reaches an observed |r| of 0.3. Measured the same way, a 0.3 to 0.5 rule would make each simulated variable as strong as the best real credit feature. Resolved in Step 3: the rule is applied to the copula's latent correlation, which gives an observed Pearson r of about 0.18 to 0.27 (see `simulator_report_en.md`).
+**Important for Step 3:** only one real feature reaches an observed |r| of 0.3. Measured the same way, a 0.3 to 0.5 rule would make each simulated variable as strong as the best real credit feature. Final decision (mission compliance): the 5 mission variables are calibrated to an observed Pearson r of −0.32, as the checklist verifies with `df.corr()`. Each of them is therefore stronger than any real credit feature (AUC alone 0.80 to 0.84), which is why results with alternative data are optimistic (see `simulator_report_en.md`).
 
 Pearson r is distorted by extreme values. Debt ratio, for example, has Pearson -0.002 but Spearman +0.058. Step 3 therefore reports latent, Pearson and Spearman correlations for every simulated variable.
 
@@ -60,6 +60,6 @@ Pearson r is distorted by extreme values. Debt ratio, for example, has Pearson -
 
 ## 6. What this changes for later steps
 
-- **Step 3:** correlation definition decided: latent correlation (see section 3).
+- **Step 3:** correlation definition decided: observed Pearson r −0.32 for the mission variables (see section 3).
 - **Step 5:** watch the AUC cost of the debt ratio constraint first. Logistic Regression needs a log transform or cap for debt ratio, income and utilization because of the skew.
-- **Fairness (채민규):** age correlates with utilization and dependents, so removing age alone will not remove age effects.
+- **Fairness (체민규):** age correlates with utilization and dependents, so removing age alone will not remove age effects.

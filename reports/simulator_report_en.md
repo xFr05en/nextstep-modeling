@@ -1,100 +1,109 @@
-# Alternative-Data Simulator Report (Step 3)
+# Alternative-Data Simulator Report
 
 > Educational use only. Not for real financial decisions. All alternative variables and gender are simulated, not observed.
 
-- Code: `src/simulator.py` (run `python -m src.simulator`), settings in `config/simulator.yaml`
-- Trade-off sweep and figures: `notebooks/simulator_report.py` (run `python notebooks/simulator_report.py`)
+- Code: `src/data/simulator.py` (run `python -m src.data.simulator`; mission-style entry point `generate_alternative_data()`), settings in `config/simulator.yaml`
+- Scenario checks: `notebooks/simulator_scenarios.py` → `reports/simulator_scenarios.json`. Credit-link sweep and figures 08 to 10: `notebooks/simulator_report.py`
 - Outputs: `data/processed/gmsc_sim.csv` (main, b = 0.30), `data/processed/gmsc_sim_target_only.csv` (comparison, b = 0)
-- Numbers: `reports/simulator_summary.json`, `reports/simulator_sweep.json`. Figures 08 to 10 in `reports/figures/` (Korean and English)
 
-**Interpretation of the charter rule:** the 0.3 to 0.5 correlation rule is applied to the copula's latent correlation (hidden variable score vs. hidden default score), and the observed Pearson values with the 0/1 default column are listed alongside.
+**Important:** the simulator uses the real default column for **every** row, including rows that later land in the test set, exactly as the mission's own example simulator does. Every result that uses alternative data is therefore optimistic. **The GMSC-only model is the realistic reference** (test AUC about 0.86).
 
-## 1. How the simulator works
+## 1. The 8 variables
 
-Each alternative variable starts as a hidden score `z` on a standard normal scale:
+| Variable | Role | Range | Distribution | Correlation rule |
+|---|---|---|---|---|
+| `telecom_payment_rate` | mission | 0 to 1 (steps of 1/12) | Beta(8, 1.5) | observed Pearson r = −0.32 |
+| `utility_payment_rate` | mission | 0 to 1 (steps of 1/12) | Beta(8, 1.5) | observed Pearson r = −0.32 |
+| `spending_consistency` | mission | 0 to 100 | Beta(5, 2) × 100 | observed Pearson r = −0.32 |
+| `regular_payment_count` | mission | 0 to 20, integer | Binomial(20, 0.75) | observed Pearson r = −0.32 |
+| `app_login_frequency` | mission | 0 to 30, integer (days with a login) | Binomial(30, 0.75) | observed Pearson r = −0.32 |
+| `telecom_tenure_months` | extra | 0 to 240, capped at (age − 18) × 12 | Gamma(2, 24) | latent r = −0.35 |
+| `insurance_paid_months` | extra | 0 to 24 | Binomial(24, 0.75) | latent r = −0.35 |
+| `autopay_ratio` | extra, **not a model feature** | 0 to 1 (steps of 0.2) | 6-step discrete | latent r = −0.35 |
 
-`z = -(a × T + b × w × C) + noise × e`
+The two payment rates were renamed from `telecom_ontime_rate` / `utility_ontime_rate` to the mission's names (same variables). Signs are negative: a higher value means a lower default risk.
+
+## 2. How each value is generated
+
+Each variable starts as a hidden score on a standard normal scale:
+
+`z = -(a × T + b × w × C) + g × F + e`
 
 | Part | Meaning |
 |---|---|
-| `T` | Hidden default score. Defaulters get a value from the top 6.68% of a normal curve, non-defaulters from the rest. |
-| `C` | Credit-behavior score from real GMSC data: total past-due count plus revolving utilization, each converted to rank-based normal scores. Higher = worse. |
-| `e` | Independent random noise per variable. |
-| `a` | Calibrated so the latent correlation r(z, T) equals -0.35 for every variable. `z` includes the credit part, so the total is calibrated. |
-| `b × w` | Strength of the link to credit behavior. Main dataset b = 0.30. Weight w = 1.0 for the two on-time rates, 0.5 for tenure, insurance months and autopay. |
+| `T` | hidden default score (defaulters drawn from the top 6.68% of a normal curve) |
+| `C` | credit-behavior score from past-due counts and revolving utilization only (no age, no gender) |
+| `F` | one random factor shared by the 5 mission variables only |
+| `e` | independent noise per variable |
+| `a` | calibrated per variable: **observed** Pearson r with the 0/1 target = −0.32 ± 0.005 for the mission variables (what `df.corr()` shows, as the checklist verifies); **latent** r(z, T) = −0.35 for the extras |
+| `b × w` | link to real credit behavior: b = 0.30; w = 1.0 for the two payment rates, 0.5 for the others |
+| `g` | searched so the largest correlation between two mission variables stays at or below 0.60 (achieved 0.591) |
 
-The minus sign makes higher values mean lower default risk, as `actionability.yaml` requires. The copula step then ranks `z` and maps it to each variable's real distribution (beta, gamma, binomial or 6-step discrete). Everything uses seed 42, so the same seed gives the same data.
+The copula step ranks `z` and maps it to the variable's distribution. Seeded (seed 42): the same seed gives byte-identical data.
 
-**Missing values in the credit part:**
-- The 269 special-code rows (96/98) have no past-due counts after Step 1. They default at 54.65%, so they are ranked as the worst past-due behavior.
-- The 241 utilization outliers (above 10) default at 7.05%, close to the 6.68% average. There is no sign they are riskier, so they get a neutral utilization score (0, the middle of the scale).
+**Why a shared factor:** the 5 mission variables overlap in information, which limits how much they add together. Its effect is modest: full-model CV AUC 0.968 (average pair 0.30), 0.959 (0.45), 0.957 (largest pair 0.60, chosen).
 
-**Tenure cap:** phone carrier tenure cannot exceed (age - 18) × 12 months. The cap applies to 0.69% of rows.
+**Why Binomial for the counts:** with Poisson counts, defaulters bunch together at the low end, so reaching observed r = −0.32 needed a much stronger hidden link (AUC alone 0.86). Binomial with p = 0.75 has a long left tail like the payment rates (AUC alone 0.83). Raising the Poisson mean (λ 10 / 18) did not help (0.86 / 0.85).
 
-**Gender:** a separate 50/50 random draw. Female share 50.26%, correlation with default 0.0007.
+## 3. Results per variable (main dataset)
 
-## 2. Results per variable (main dataset, b = 0.30)
+| Variable | Observed Pearson r | Latent r | Spearman r | AUC alone | r with credit score | r with age |
+|---|---|---|---|---|---|---|
+| telecom_payment_rate | −0.323 | −0.471 | −0.273 | 0.806 | −0.287 | +0.079 |
+| utility_payment_rate | −0.320 | −0.465 | −0.270 | 0.802 | −0.288 | +0.078 |
+| spending_consistency | −0.318 | −0.525 | −0.277 | 0.821 | −0.202 | +0.056 |
+| regular_payment_count | −0.316 | −0.555 | −0.287 | 0.828 | −0.202 | +0.057 |
+| app_login_frequency | −0.323 | −0.559 | −0.293 | 0.835 | −0.199 | +0.056 |
+| telecom_tenure_months | −0.176 | −0.350 | −0.209 | 0.742 | −0.176 | +0.065 |
+| insurance_paid_months | −0.223 | −0.350 | −0.207 | 0.737 | −0.202 | +0.056 |
+| autopay_ratio | −0.203 | −0.350 | −0.203 | 0.731 | −0.189 | +0.052 |
 
-| Variable | Latent r | Observed Pearson r | Spearman r | AUC alone |
-|---|---|---|---|---|
-| Phone bill on-time rate | -0.350 | -0.273 | -0.235 | 0.763 |
-| Utility bill on-time rate | -0.350 | -0.273 | -0.234 | 0.762 |
-| Phone carrier tenure | -0.350 | -0.176 | -0.209 | 0.742 |
-| Insurance paid months | -0.350 | -0.223 | -0.207 | 0.737 |
-| Autopay share | -0.350 | -0.202 | -0.202 | 0.731 |
+- **The mission rule holds:** observed |r| is 0.316 to 0.323 on the full data and 0.314 to 0.339 on each of the train / validation / test splits (tested).
+- **Largest correlation between any two of the 8 variables:** 0.591 (cap 0.60).
+- **Gender:** 50/50, correlation with default 0.0007.
 
-Comparison version without the credit link (target-only, b = 0):
+**Strength warning:** each mission variable alone reaches AUC 0.80 to 0.84, stronger than any real GMSC feature. This comes from the observed-r rule with a 6.7% default rate, and it is the main reason the full model reaches test AUC 0.95.
 
-| Variable | Latent r | Observed Pearson r | Spearman r | AUC alone |
-|---|---|---|---|---|
-| Phone bill on-time rate | -0.350 | -0.188 | -0.172 | 0.693 |
-| Utility bill on-time rate | -0.350 | -0.185 | -0.171 | 0.691 |
-| Phone carrier tenure | -0.350 | -0.153 | -0.176 | 0.704 |
-| Insurance paid months | -0.350 | -0.184 | -0.174 | 0.700 |
-| Autopay share | -0.350 | -0.171 | -0.171 | 0.695 |
+## 4. `app_login_frequency` and age
 
-**Check of the expected values:** with a 6.68% default rate, latent 0.35 was expected to give an observed Pearson r of about 0.18 and an AUC of about 0.70. The target-only version confirms this (Pearson 0.15 to 0.19, AUC 0.69 to 0.70).
+The mission example links app logins to age. **This simulator does not**, because age is a protected attribute. Its credit part uses only past-due counts and utilization; a test confirms that shuffling `age` leaves the credit score unchanged. It still correlates +0.056 with age, indirectly: older borrowers have lower utilization and default less. Mean by mission age band: **22.3 (20 to 34), 22.4 (35 to 54), 22.6 (55+)** days.
 
-**Why the linked version is stronger at the same latent r:** the hidden default score `T` contains random variation within each group that has nothing to do with the actual outcome. The credit score `C` comes from real data, so its link to the actual 0/1 outcome is stronger than its link to `T`. As a result, a variable built partly from `C` carries more information about real default (Pearson up to 0.27, AUC up to 0.76) even though its latent r is still 0.35.
+## 5. Scenario parameters
 
-**Link to real credit features (main dataset):** the on-time rates correlate -0.25 with total past-due count and -0.27 with utilization. The other three variables, which use half the link, correlate -0.13 to -0.16 with both.
+| Parameter | Default | Effect |
+|---|---|---|
+| `thin_filer_ratio` | None (natural 7.71%) | `subsample` mode: reaches the ratio by subsampling the larger group without replacement (0.15 → 77,093 rows; 0.30 → 38,547 rows). `mask` mode (demonstration only): blanks the past-due columns so the mission rule flags the ratio (0.30 → exactly 30.0%). |
+| `bias_ratio` | 0.0 | shifts the hidden scores of women and the 20 to 34 age band down by `bias_ratio` SD, in [0, 1] |
 
-**Between alternative variables:** Pearson r ranges from 0.12 to 0.19, far below the 0.60 cap. The two on-time rates correlate 0.19, so no extra noise was needed (noise stays 1.0 for all).
+The mission example uses 0.3 / 0.1 as defaults. Ours are None / 0.0 because the final model must be trained on the natural composition and on unbiased data.
 
-## 3. Correlation with age (for the fairness analysis)
+**Bias scenario (final setup retrained in 5-fold CV, mission age bands):**
 
-| Variable | Pearson r with age |
-|---|---|
-| Phone bill on-time rate | +0.092 |
-| Utility bill on-time rate | +0.091 |
-| Phone carrier tenure | +0.065 |
-| Insurance paid months | +0.056 |
-| Autopay share | +0.052 |
+| bias_ratio | Gender approval gap / DI / EO gap | Age-band approval gap / DI / EO gap |
+|---|---|---|
+| 0.0 | 0.001 / 0.999 / 0.011 | 0.152 / 0.836 / 0.127 |
+| 0.2 | 0.033 / 0.963 / 0.062 | 0.157 / 0.831 / 0.132 |
+| 0.5 | 0.074 / 0.918 / 0.132 | 0.156 / 0.832 / 0.151 |
 
-The tenure cap adds almost nothing: tenure is no more related to age than the other variables. The small positive relationship comes indirectly, because older borrowers have lower utilization and default less, and the simulator links the variables to both. In the target-only version it is 0.02 to 0.03. So the alternative variables are a weak stand-in for age, and the link to credit behavior makes it 2 to 4 times larger.
+- **Gender:** a clean measurement-bias effect. Women and men default at the same 6.7%, yet women's approval falls from 86.6% to 82.8%.
+- **Age band (finding):** retraining mostly offsets the shift. Age is a model feature, so the model learns that young applicants' alternative data reads low; the approval gap and DI barely move. The EO gap still rises.
+- The latent link `a` of the mission variables changes only at 0.5, because calibration stops once r is within ±0.005.
 
-## 4. Thin-filer flag
+## 6. Credit link vs. AUC gain (Figure 08)
 
-`thin_filer = 1` when `NumberOfOpenCreditLinesAndLoans <= 2` and `NumberRealEstateLoansOrLines == 0` (rule in `config/simulator.yaml`, function in `src/features.py`). It flags 11,564 rows (7.71%). This completes Step 4 early.
+LightGBM default settings, 5-fold CV, mission variables always at observed r −0.32.
 
-## 5. Trade-off: link to credit behavior vs. AUC gain (Figure 08)
+| Credit link b | Thin-filer gain | Overall gain |
+|---|---|---|
+| 0 (default only) | +0.101 ± 0.015 | +0.090 |
+| 0.15 | +0.095 ± 0.014 | +0.084 |
+| **0.30 (main)** | **+0.088 ± 0.014** | **+0.078** |
+| 0.45 | +0.083 ± 0.014 | +0.073 |
 
-LightGBM with default settings, 5-fold stratified CV (by default status and thin-filer flag), the same folds for both models. The gain is AUC with alternative data minus AUC without it. GMSC-only AUC is 0.865 overall and 0.850 for thin-filers.
+Linking the variables to real credit behavior lowers the gain by about 13% at b = 0.30, because part of their information overlaps with the past-due counts and utilization. The gain stays far above +0.03 in every setting.
 
-| Credit link b | Thin-filer gain | Overall gain | Thin-filer AUC with alt. data | Mean single-variable AUC |
-|---|---|---|---|---|
-| 0 (target-only) | +0.075 ± 0.010 | +0.068 | 0.925 | 0.697 |
-| 0.15 | +0.071 ± 0.009 | +0.064 | 0.922 | 0.723 |
-| **0.30 (main)** | **+0.067 ± 0.008** | **+0.061** | **0.918** | **0.747** |
-| 0.45 | +0.065 ± 0.007 | +0.060 | 0.915 | 0.768 |
+## 7. Limitations
 
-(± is 1 standard deviation across the 5 folds.)
-
-**How to explain it:** linking the variables to credit behavior lowers the thin-filer gain from +0.075 to +0.067, a drop of 0.007 or about 10%. This happens even though each variable becomes stronger on its own (mean AUC 0.70 to 0.75). The reason is overlap: part of what the variables know is already in the past-due counts and utilization, so it adds less new information. In every setting the gain stays above the +0.03 goal. The difference between neighboring settings is smaller than the fold-to-fold spread, so only the overall downward trend should be presented, not single steps.
-
-## 6. Limitations
-
-- **Simulation bias (main limitation).** The alternative variables are generated from the real default column, so every row's values already "know" its outcome, including rows that land in a test fold. This cannot be avoided in a simulation, but it means the absolute gain (+0.067) is optimistic and should not be read as what real telecom or utility data would deliver. The trade-off pattern (direction and relative size) is the more reliable result.
-- **The size of the gain depends on our settings.** The latent target (0.35), the link strength b and the weights were chosen by the team, not estimated from real alternative data.
-- **The overall AUC is high (0.926 with alternative data).** This follows from five independent sources of default information. Treat it as a best case.
-- One seed, default LightGBM settings. Step 5 does the full model comparison.
+- **Simulation bias:** the target is used for every row, including the test set, as in the mission example. Treat the gain as an upper bound; the trade-off pattern is the more reliable result.
+- **Strength set by the rule:** observed r = −0.32 per variable, five such variables and a shared factor. The settings were chosen by the team, not estimated from real data.
+- **The 0.60 cap rules out the top of the mission range:** at observed r = −0.50 even the lowest reachable pair correlation is 0.82 (see the audit report).

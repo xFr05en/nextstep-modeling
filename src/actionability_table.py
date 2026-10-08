@@ -29,12 +29,12 @@ T = {
         "sheet_features": "Classification", "sheet_classes": "Classes",
         "headers": ["Variable", "Label", "Source", "Actionability", "Class", "Direction", "Step unit",
                     "Allowed range", "Difficulty (1-3)", "Months per step", "Monotone constraint (on PD)",
-                    "Protected", "DiCE", "Recourse handling", "Notes"],
+                    "Protected", "DiCE", "Model feature", "Recourse handling", "Notes"],
         "class_headers": ["Code", "Class", "Definition", "Recourse (DiCE) handling"],
         "source": {"gmsc": "GMSC", "derived": "Derived (Step 1)", "simulated": "Simulated"},
         "direction": {"increase": "Increase", "decrease": "Decrease", "none": "-"},
         "monotone": {1: "+1 (higher value, higher PD)", -1: "-1 (higher value, lower PD)", 0: "0 (none)"},
-        "yes": "Yes", "vary": "Varied", "fixed": "Fixed", "no_upper": "no upper limit",
+        "yes": "Yes", "no": "No", "vary": "Varied", "fixed": "Fixed", "no_upper": "no upper limit",
     },
     "ko": {
         "title": "변수별 조치 가능성 분류",
@@ -42,12 +42,12 @@ T = {
                      "`python -m src.actionability_table`을 다시 실행하십시오. 교육용으로만 사용.",
         "sheet_features": "분류표", "sheet_classes": "분류 설명",
         "headers": ["변수", "설명", "출처", "조치 가능성", "분류명", "방향", "단위 변화량", "허용 범위",
-                    "난이도 (1~3)", "단계당 개월", "단조 제약 (PD 기준)", "보호 속성", "DiCE", "경로 처리", "비고"],
+                    "난이도 (1~3)", "단계당 개월", "단조 제약 (PD 기준)", "보호 속성", "DiCE", "모델 변수", "경로 처리", "비고"],
         "class_headers": ["코드", "분류명", "정의", "경로(DiCE) 처리"],
         "source": {"gmsc": "GMSC", "derived": "파생 (1단계)", "simulated": "시뮬레이션"},
         "direction": {"increase": "증가", "decrease": "감소", "none": "-"},
         "monotone": {1: "+1 (값이 높을수록 PD 높음)", -1: "-1 (값이 높을수록 PD 낮음)", 0: "0 (없음)"},
-        "yes": "예", "vary": "변경", "fixed": "고정", "no_upper": "상한 없음",
+        "yes": "예", "no": "아니오", "vary": "변경", "fixed": "고정", "no_upper": "상한 없음",
     },
 }
 
@@ -82,6 +82,7 @@ def sheet_rows(act: dict, lang: str) -> dict[str, list[list]]:
             t["direction"][e["direction"]], _dash(e["step"]), _bounds(e["bounds"], t), _dash(e["difficulty"]),
             _dash(e["months_per_step"]), t["monotone"][e["monotone"]], t["yes"] if e["protected"] else "-",
             t["vary"] if e["dice_vary"] else t["fixed"],
+            t["yes"] if e.get("model_feature", True) else t["no"],
             cls["recourse"] if lang == "ko" else cls["recourse_en"], e[f"note_{sfx}"],
         ])
     cls_rows = [t["class_headers"]] + [
@@ -95,7 +96,7 @@ def write_workbook(act: dict, lang: str, path: Path) -> None:
     wb = Workbook()
     wb.remove(wb.active)
     widths = {
-        0: [38, 34, 16, 18, 20, 10, 12, 18, 12, 12, 26, 10, 10, 34, 90],
+        0: [38, 34, 16, 18, 20, 10, 12, 18, 12, 12, 26, 10, 10, 12, 34, 90],
         1: [18, 22, 60, 50],
     }
     for i, (title, rows) in enumerate(sheet_rows(act, lang).items()):

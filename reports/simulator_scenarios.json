@@ -1,0 +1,282 @@
+{
+  "thin_filer_ratio": {
+    "None": {
+      "thin_filer_ratio": null,
+      "bias_ratio": 0.0,
+      "rows_in": 149999,
+      "rows_out": 149999,
+      "sampled_without_replacement": true,
+      "thin_share": 0.0771,
+      "default_rate": 0.0668,
+      "protected_share": 0.5667,
+      "mission_observed_r": {
+        "telecom_payment_rate": -0.3234,
+        "utility_payment_rate": -0.3195,
+        "spending_consistency": -0.318,
+        "regular_payment_count": -0.3163,
+        "app_login_frequency": -0.3225
+      }
+    },
+    "0.15": {
+      "thin_filer_ratio": 0.15,
+      "bias_ratio": 0.0,
+      "rows_in": 149999,
+      "rows_out": 77093,
+      "sampled_without_replacement": true,
+      "thin_share": 0.15,
+      "default_rate": 0.0715,
+      "protected_share": 0.576,
+      "mission_observed_r": {
+        "telecom_payment_rate": -0.3201,
+        "utility_payment_rate": -0.3241,
+        "spending_consistency": -0.3198,
+        "regular_payment_count": -0.318,
+        "app_login_frequency": -0.3246
+      }
+    },
+    "0.3": {
+      "thin_filer_ratio": 0.3,
+      "bias_ratio": 0.0,
+      "rows_in": 149999,
+      "rows_out": 38547,
+      "sampled_without_replacement": true,
+      "thin_share": 0.3,
+      "default_rate": 0.0809,
+      "protected_share": 0.5961,
+      "mission_observed_r": {
+        "telecom_payment_rate": -0.3154,
+        "utility_payment_rate": -0.3218,
+        "spending_consistency": -0.3191,
+        "regular_payment_count": -0.3231,
+        "app_login_frequency": -0.3207
+      }
+    }
+  },
+  "bias_ratio": {
+    "0.0": {
+      "scenario": {
+        "thin_filer_ratio": null,
+        "bias_ratio": 0.0,
+        "rows_in": 149999,
+        "rows_out": 149999,
+        "sampled_without_replacement": true,
+        "thin_share": 0.0771,
+        "default_rate": 0.0668,
+        "protected_share": 0.5667
+      },
+      "mission_latent_link_a": {
+        "telecom_payment_rate": 0.6641,
+        "utility_payment_rate": 0.6445,
+        "spending_consistency": 0.7812,
+        "regular_payment_count": 0.8594,
+        "app_login_frequency": 0.8594
+      },
+      "mission_observed_r": {
+        "telecom_payment_rate": -0.3234,
+        "utility_payment_rate": -0.3195,
+        "spending_consistency": -0.318,
+        "regular_payment_count": -0.3163,
+        "app_login_frequency": -0.3225
+      },
+      "gender": {
+        "groups": {
+          "female": {
+            "n": 75394,
+            "default_rate": 0.067,
+            "approval_rate": 0.8658,
+            "approval_if_repaid": 0.9145,
+            "approval_if_defaulted": 0.1884
+          },
+          "male": {
+            "n": 74605,
+            "default_rate": 0.0667,
+            "approval_rate": 0.8668,
+            "approval_if_repaid": 0.9145,
+            "approval_if_defaulted": 0.1991
+          }
+        },
+        "approval_gap": 0.001,
+        "di_ratio_min_over_max": 0.9988,
+        "eo_gap": 0.0107
+      },
+      "age_band": {
+        "groups": {
+          "35-54": {
+            "n": 65339,
+            "default_rate": 0.0832,
+            "approval_rate": 0.8321,
+            "approval_if_repaid": 0.8914,
+            "approval_if_defaulted": 0.1779
+          },
+          "20-34": {
+            "n": 19239,
+            "default_rate": 0.1118,
+            "approval_rate": 0.7752,
+            "approval_if_repaid": 0.8545,
+            "approval_if_defaulted": 0.1451
+          },
+          "55+": {
+            "n": 65421,
+            "default_rate": 0.0373,
+            "approval_rate": 0.9273,
+            "approval_if_repaid": 0.9527,
+            "approval_if_defaulted": 0.2716
+          }
+        },
+        "approval_gap": 0.1521,
+        "di_ratio_min_over_max": 0.836,
+        "eo_gap": 0.1265
+      }
+    },
+    "0.2": {
+      "scenario": {
+        "thin_filer_ratio": null,
+        "bias_ratio": 0.2,
+        "rows_in": 149999,
+        "rows_out": 149999,
+        "sampled_without_replacement": true,
+        "thin_share": 0.0771,
+        "default_rate": 0.0668,
+        "protected_share": 0.5667
+      },
+      "mission_latent_link_a": {
+        "telecom_payment_rate": 0.6641,
+        "utility_payment_rate": 0.6445,
+        "spending_consistency": 0.7812,
+        "regular_payment_count": 0.8594,
+        "app_login_frequency": 0.8594
+      },
+      "mission_observed_r": {
+        "telecom_payment_rate": -0.3244,
+        "utility_payment_rate": -0.3202,
+        "spending_consistency": -0.3184,
+        "regular_payment_count": -0.3165,
+        "app_login_frequency": -0.3229
+      },
+      "gender": {
+        "groups": {
+          "female": {
+            "n": 75394,
+            "default_rate": 0.067,
+            "approval_rate": 0.8491,
+            "approval_if_repaid": 0.8982,
+            "approval_if_defaulted": 0.166
+          },
+          "male": {
+            "n": 74605,
+            "default_rate": 0.0667,
+            "approval_rate": 0.882,
+            "approval_if_repaid": 0.9287,
+            "approval_if_defaulted": 0.2276
+          }
+        },
+        "approval_gap": 0.0329,
+        "di_ratio_min_over_max": 0.9627,
+        "eo_gap": 0.0616
+      },
+      "age_band": {
+        "groups": {
+          "35-54": {
+            "n": 65339,
+            "default_rate": 0.0832,
+            "approval_rate": 0.8328,
+            "approval_if_repaid": 0.8918,
+            "approval_if_defaulted": 0.1831
+          },
+          "20-34": {
+            "n": 19239,
+            "default_rate": 0.1118,
+            "approval_rate": 0.7696,
+            "approval_if_repaid": 0.8485,
+            "approval_if_defaulted": 0.1423
+          },
+          "55+": {
+            "n": 65421,
+            "default_rate": 0.0373,
+            "approval_rate": 0.9262,
+            "approval_if_repaid": 0.9515,
+            "approval_if_defaulted": 0.2745
+          }
+        },
+        "approval_gap": 0.1566,
+        "di_ratio_min_over_max": 0.8309,
+        "eo_gap": 0.1322
+      }
+    },
+    "0.5": {
+      "scenario": {
+        "thin_filer_ratio": null,
+        "bias_ratio": 0.5,
+        "rows_in": 149999,
+        "rows_out": 149999,
+        "sampled_without_replacement": true,
+        "thin_share": 0.0771,
+        "default_rate": 0.0668,
+        "protected_share": 0.5667
+      },
+      "mission_latent_link_a": {
+        "telecom_payment_rate": 0.625,
+        "utility_payment_rate": 0.625,
+        "spending_consistency": 0.7812,
+        "regular_payment_count": 0.8594,
+        "app_login_frequency": 0.8203
+      },
+      "mission_observed_r": {
+        "telecom_payment_rate": -0.3176,
+        "utility_payment_rate": -0.3192,
+        "spending_consistency": -0.3226,
+        "regular_payment_count": -0.3203,
+        "app_login_frequency": -0.3182
+      },
+      "gender": {
+        "groups": {
+          "female": {
+            "n": 75394,
+            "default_rate": 0.067,
+            "approval_rate": 0.8282,
+            "approval_if_repaid": 0.8776,
+            "approval_if_defaulted": 0.1395
+          },
+          "male": {
+            "n": 74605,
+            "default_rate": 0.0667,
+            "approval_rate": 0.9019,
+            "approval_if_repaid": 0.9469,
+            "approval_if_defaulted": 0.2719
+          }
+        },
+        "approval_gap": 0.0737,
+        "di_ratio_min_over_max": 0.9183,
+        "eo_gap": 0.1324
+      },
+      "age_band": {
+        "groups": {
+          "35-54": {
+            "n": 65339,
+            "default_rate": 0.0832,
+            "approval_rate": 0.8309,
+            "approval_if_repaid": 0.8885,
+            "approval_if_defaulted": 0.196
+          },
+          "20-34": {
+            "n": 19239,
+            "default_rate": 0.1118,
+            "approval_rate": 0.7708,
+            "approval_if_repaid": 0.8507,
+            "approval_if_defaulted": 0.1358
+          },
+          "55+": {
+            "n": 65421,
+            "default_rate": 0.0373,
+            "approval_rate": 0.9264,
+            "approval_if_repaid": 0.9512,
+            "approval_if_defaulted": 0.2868
+          }
+        },
+        "approval_gap": 0.1556,
+        "di_ratio_min_over_max": 0.832,
+        "eo_gap": 0.151
+      }
+    }
+  }
+}

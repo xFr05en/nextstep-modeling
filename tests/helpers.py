@@ -14,7 +14,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-HINT = "run `python -m src.data`, `python -m src.simulator` and `python -m src.train --stage all` first"
+HINT = "run `python -m src.data`, `python -m src.data.simulator` and `python -m src.train --stage all` first"
 
 
 def require(path: Path) -> Path:
@@ -50,5 +50,13 @@ def _load_model(path: Path):
     return joblib.load(path)
 
 
+def final_model_path() -> Path:
+    """Versioned final model file named in reports/final_summary.json (e.g. models/xgboost_v1.0.joblib)."""
+    import json
+
+    summary = require(ROOT / load_yaml("train.yaml")["outputs"]["final_summary"])
+    return ROOT / json.loads(summary.read_text())["model_file"]
+
+
 def final_model():
-    return _load_model(require(ROOT / load_yaml("train.yaml")["outputs"]["model"]))
+    return _load_model(require(final_model_path()))

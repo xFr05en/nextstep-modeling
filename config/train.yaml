@@ -1,10 +1,18 @@
 # Model comparison and final model settings (Step 5)
 seed: 42
-n_splits: 5                 # stratified on target x thin_filer; same folds for every run
+# Stratified (stratify=y) 70:15:15 split, saved as data/processed/split.csv (row_id, split).
+# train: model comparison with 5-fold CV. validation: decisions (monotonic loss; any future
+# threshold or fairness tuning). test: touched once, by the shipped model (fit on train+validation).
+split: {train: 0.70, validation: 0.15, test: 0.15, seed: 42}
+n_splits: 5                 # CV inside train, stratified on target x thin_filer; same folds for every run
+cv_repeats: 5               # 5 x 5-fold: 25 replicates per ANOVA cell (power for the two-way bonus test)
 data: data/processed/gmsc_sim.csv
 target: SeriousDlqin2yrs
 thin_col: thin_filer
 model_names: [lr, lgbm, xgb]
+# Model file names: models/{full_name}_v{model_version}.joblib  (e.g. models/xgboost_v1.0.joblib)
+model_version: "1.0"
+model_full_names: {lr: logistic_regression, lgbm: lightgbm, xgb: xgboost}
 feature_sets: [gmsc, alt, both]
 resampling: [none, class_weight, smote]
 # Fixed hyperparameters (no per-run tuning, so the grid compares methods, not tuning effort)
@@ -22,17 +30,26 @@ monotonic:
   models: [lgbm, xgb]
   max_auc_loss: 0.01
   drop_order: [DebtRatio, MonthlyIncome, RevolvingUtilizationOfUnsecuredLines]
-calibration: {method: sigmoid, cv: 3}   # Platt, only if the winner uses class weights or SMOTE
+# Platt, only if the winner uses class weights or SMOTE: CalibratedClassifierCV with internal CV,
+# refit on train+validation, so the test set evaluates exactly the shipped object.
+calibration: {method: sigmoid, cv: 3}
+bootstrap: {n: 500, seed: 42}           # 95% CIs on validation and test metrics
 mlflow:
-  tracking_dir: mlruns                  # SQLite db + artifacts inside mlruns/ (gitignored)
-  experiments:
-    compare: nextstep-model-comparison
-    monotonic: nextstep-monotonic
+  # Tracking URI: env var MLFLOW_TRACKING_URI if set (e.g. the docker-compose MLflow server),
+  # else a local SQLite db + artifacts in ./mlruns (gitignored, relative to the project root).
+  tracking_dir: mlruns
+  experiments:                          # one experiment per algorithm, plus final and audit
+    lr: nextstep-lr
+    lgbm: nextstep-lgbm
+    xgb: nextstep-xgb
     final: nextstep-final
+    audit: nextstep-audit
 outputs:
   comparison: reports/model_comparison.csv
+  cv_fold_auc: reports/cv_fold_auc.csv   # ANOVA handoff: run, model, features, resampling, repeat, fold, segment, n_rows, n_defaults, auc
   monotonic: reports/monotonic_results.csv
   final_summary: reports/final_summary.json
   grade_table: reports/grade_table.csv
-  oof: data/processed/final_oof_scores.csv
-  model: models/final_model.joblib
+  split: data/processed/split.csv
+  test_scores: data/processed/final_test_scores.csv
+  model: "models/{full_name}_v{version}.joblib"

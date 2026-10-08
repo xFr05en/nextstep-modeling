@@ -1,10 +1,10 @@
-"""Load and clean the GMSC dataset (Step 1).
+"""Preprocessing: GMSC cleaning rules, in-fold building blocks, and the train/validation/test split.
 
-Rules are read from config/data.yaml. This module only fixes clearly wrong
-values and adds flag columns. Missing values are left as NaN on purpose:
-imputation is fit on training folds later (src/features.py) to avoid leakage.
+Cleaning (rules in config/data.yaml) only fixes clearly wrong values and adds flag columns.
+Missing values are left as NaN on purpose: the imputer, scaler, encoder and LR transform below
+are pipeline steps, so they are fit on training folds only (no leakage).
 
-Run:  python -m src.data
+Run:  python -m src.data   (or python -m src.data.preprocessor)
 """
 from __future__ import annotations
 
@@ -14,8 +14,14 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.impute import SimpleImputer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-ROOT = Path(__file__).resolve().parents[1]
+from src.data.loader import load_gmsc
+
+ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CONFIG = ROOT / "config" / "data.yaml"
 
 FLAG_COLUMNS = ["pastdue_special_code", "income_missing", "income_zero", "util_outlier"]
@@ -26,11 +32,9 @@ def load_config(path: Path | str = DEFAULT_CONFIG) -> dict:
         return yaml.safe_load(f)
 
 
-def load_raw(cfg: dict) -> pd.DataFrame:
-    df = pd.read_csv(ROOT / cfg["raw_path"])
-    if cfg["id_column"] in df.columns:
-        df = df.drop(columns=cfg["id_column"])
-    return df
+def load_raw(cfg: dict | None = None, verbose: bool = True) -> pd.DataFrame:
+    """Raw GMSC via the loader (prints column names, dtypes and missing ratios)."""
+    return load_gmsc(ROOT / cfg["raw_path"] if cfg else None, verbose=verbose)
 
 
 def clean(df: pd.DataFrame, cfg: dict) -> tuple[pd.DataFrame, dict]:
@@ -91,6 +95,65 @@ def clean(df: pd.DataFrame, cfg: dict) -> tuple[pd.DataFrame, dict]:
         for f in FLAG_COLUMNS
     }
     return df, log
+
+
+# ---- In-fold building blocks (pipeline steps; fit on training folds only) ----
+
+def make_imputer() -> SimpleImputer:
+    """Missing values: median of the training fold."""
+    return SimpleImputer(strategy="median")
+
+
+def make_scaler() -> StandardScaler:
+    """Numeric scaling (LR, and before SMOTE because it uses distances)."""
+    return StandardScaler()
+
+
+def make_onehot_encoder(feature_name_combiner=None) -> OneHotEncoder:
+    """Categorical encoding. GMSC has no categorical columns; the German Credit model uses this."""
+    kw = {"feature_name_combiner": feature_name_combiner} if feature_name_combiner else {}
+    return OneHotEncoder(handle_unknown="ignore", sparse_output=False, **kw)
+
+
+class LogCap(BaseEstimator, TransformerMixin):
+    """log1p (values below 0 clipped to 0), then cap at a quantile learned on the training fold."""
+
+    def __init__(self, cols=(), q: float = 0.99):
+        self.cols = cols
+        self.q = q
+
+    def fit(self, X, y=None):
+        X = np.asarray(X, float)
+        self.caps_ = {c: np.quantile(np.log1p(np.clip(X[:, c], 0, None)), self.q) for c in self.cols}
+        return self
+
+    def transform(self, X):
+        X = np.array(X, float, copy=True)
+        for c, cap in self.caps_.items():
+            X[:, c] = np.minimum(np.log1p(np.clip(X[:, c], 0, None)), cap)
+        return X
+
+
+# ---- Split ----
+
+def make_split(df: pd.DataFrame, cfg: dict) -> pd.Series:
+    """Stratified (stratify=y) train / validation / test labels, e.g. 70:15:15. Index = df.index.
+    cfg: config/train.yaml (split ratios, seed, target)."""
+    sp = cfg["split"]
+    y = df[cfg["target"]]
+    rest, test = train_test_split(df.index, test_size=sp["test"], stratify=y, random_state=sp["seed"])
+    val_share = sp["validation"] / (sp["train"] + sp["validation"])
+    train, val = train_test_split(rest, test_size=val_share, stratify=y.loc[rest], random_state=sp["seed"])
+    labels = pd.Series("train", index=df.index, name="split")
+    labels.loc[val] = "validation"
+    labels.loc[test] = "test"
+    return labels
+
+
+def save_split(labels: pd.Series, cfg: dict) -> None:
+    """data/processed/split.csv (row_id, split): defines train / validation / test for the whole team."""
+    out = ROOT / cfg["outputs"]["split"]
+    pd.DataFrame({"row_id": labels.index, "split": labels.to_numpy()}).to_csv(out, index=False)
 
 
 def main() -> None:

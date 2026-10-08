@@ -1,0 +1,11 @@
+rank,feature,mean_abs_shap,actionability
+1,app_login_frequency,0.6705,NOT_RECOMMENDED
+2,regular_payment_count,0.5532,NOT_RECOMMENDED
+3,spending_consistency,0.5277,ACTIONABLE
+4,telecom_tenure_months,0.4689,TIME_ONLY
+5,insurance_paid_months,0.4521,TIME_ONLY
+6,RevolvingUtilizationOfUnsecuredLines,0.4145,ACTIONABLE
+7,NumberOfTimes90DaysLate,0.2158,NON_DECREASING
+8,age,0.2136,IMMUTABLE
+9,NumberOfTime30-59DaysPastDueNotWorse,0.2038,NON_DECREASING
+10,telecom_payment_rate,0.1523,ACTIONABLE

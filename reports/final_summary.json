@@ -19,36 +19,77 @@
       "income_missing": 0,
       "income_zero": 0,
       "util_outlier": 0,
-      "telecom_ontime_rate": -1,
-      "utility_ontime_rate": -1,
+      "telecom_payment_rate": -1,
+      "utility_payment_rate": -1,
       "telecom_tenure_months": -1,
       "insurance_paid_months": -1,
-      "autopay_ratio": -1
+      "spending_consistency": -1,
+      "regular_payment_count": -1,
+      "app_login_frequency": -1
     }
   },
-  "metrics": {
-    "auc_mean": 0.9267,
-    "auc_std": 0.0034,
-    "ks_mean": 0.7038,
-    "ks_std": 0.0116,
-    "thin_auc_mean": 0.9172,
-    "thin_auc_std": 0.0069,
-    "psi_mean": 0.0005,
-    "psi_std": 0.0001,
-    "brier_mean": 0.0394,
-    "brier_std": 0.001,
-    "thin_auc_gain_mean": 0.0705,
-    "thin_auc_gain_std": 0.0084,
-    "mono_auc_loss": 0.0001
+  "model_version": "1.0",
+  "model_file": "models/xgboost_v1.0.joblib",
+  "trained_on": "train+validation",
+  "evaluated_on": "test",
+  "split_rows": {
+    "train": 104999,
+    "validation": 22500,
+    "test": 22500
   },
-  "brier_before_calibration": 0.03939,
-  "brier_after_calibration": null,
-  "mean_pd_oof": 0.0666,
-  "approval_rate": 0.8576,
-  "approval_rate_thin": 0.7149,
-  "approval_rate_not_thin": 0.8695,
-  "default_rate_approved": 0.0174,
-  "default_rate_declined": 0.3645,
+  "cv_on_train": {
+    "auc_mean": 0.9425,
+    "auc_std": 0.0029,
+    "ks_mean": 0.735,
+    "thin_auc_mean": 0.9391
+  },
+  "test": {
+    "auc": 0.9492,
+    "auc_ci95": [
+      0.9439,
+      0.9533
+    ],
+    "ks": 0.76,
+    "ks_ci95": [
+      0.7451,
+      0.7756
+    ],
+    "thin_auc": 0.9318,
+    "thin_auc_gmsc_only": 0.8613,
+    "thin_auc_lift": 0.0706,
+    "thin_auc_lift_ci95": [
+      0.0519,
+      0.092
+    ],
+    "psi_trainval_vs_test": 0.00038,
+    "brier": 0.03519,
+    "precision": 0.4141,
+    "recall": 0.8098,
+    "f1": 0.548,
+    "f1_ci95": [
+      0.5293,
+      0.5663
+    ],
+    "rows": 22500,
+    "thin_rows": 1761,
+    "thin_defaults": 221
+  },
+  "monotonic_loss_validation": {
+    "loss": -0.0,
+    "ci95": [
+      -0.0012,
+      0.0011
+    ],
+    "evaluated_on": "validation"
+  },
+  "cutoff_rule": "approve if grade in approve_grades (score >= 475), fixed in config/scoring.yaml",
+  "mean_pd_test": 0.066,
+  "default_rate_test": 0.0668,
+  "approval_rate": 0.8693,
+  "approval_rate_thin": 0.7467,
+  "approval_rate_not_thin": 0.8797,
+  "default_rate_approved": 0.0146,
+  "default_rate_declined": 0.4141,
   "monotonic_violations": {
     "RevolvingUtilizationOfUnsecuredLines": 0,
     "NumberOfTime30-59DaysPastDueNotWorse": 0,
@@ -56,16 +97,18 @@
     "MonthlyIncome": 0,
     "NumberOfTimes90DaysLate": 0,
     "NumberOfTime60-89DaysPastDueNotWorse": 0,
-    "telecom_ontime_rate": 0,
-    "utility_ontime_rate": 0,
+    "telecom_payment_rate": 0,
+    "utility_payment_rate": 0,
     "telecom_tenure_months": 0,
     "insurance_paid_months": 0,
-    "autopay_ratio": 0
+    "spending_consistency": 0,
+    "regular_payment_count": 0,
+    "app_login_frequency": 0
   },
   "charter": {
-    "auc>=0.78": true,
-    "ks>=0.28": true,
-    "thin_gain>=0.03": true,
+    "test_auc>=0.78": true,
+    "test_ks>=0.28": true,
+    "thin_lift>=0.03": true,
     "psi<0.1": true,
     "mono_loss<=0.01": true
   },
@@ -76,5 +119,5 @@
     "xgboost.sklearn.XGBClassifier"
   ],
   "mlflow_run_name": "xgb__both__none__mono-full__final",
-  "mlflow_run_id": "e137818745b6445d83d2824a9fe97428"
+  "mlflow_run_id": "8748ee1f6a264ac5904435379a52614e"
 }

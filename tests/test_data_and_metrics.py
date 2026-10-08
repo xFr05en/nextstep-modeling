@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.data import clean
+from src.data.preprocessor import clean
 from src.evaluate import ks_stat, psi
 from src.features import add_thin_filer_flag
 from tests import helpers

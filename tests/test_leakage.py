@@ -5,7 +5,8 @@ import pytest
 from imblearn.over_sampling import SMOTE
 
 from src.features import feature_sets
-from src.train import LogCap, build_pipeline, make_folds
+from src.data.preprocessor import LogCap
+from src.train import build_pipeline, make_folds
 from tests.helpers import load_yaml
 
 CFG = load_yaml("train.yaml")
@@ -81,8 +82,11 @@ def test_folds_disjoint_complete_and_stratified():
     df = pd.DataFrame({CFG["target"]: (rng.random(2000) < 0.07).astype(int),
                        CFG["thin_col"]: (rng.random(2000) < 0.08).astype(int)})
     folds = make_folds(df, CFG)
-    held = np.concatenate([te for _, te in folds])
-    assert sorted(held) == list(range(len(df)))              # every row held out exactly once
+    k, repeats = CFG["n_splits"], CFG.get("cv_repeats", 1)
+    assert len(folds) == k * repeats
+    for r in range(repeats):                                 # every row held out exactly once per repeat
+        held = np.concatenate([te for _, te in folds[r * k:(r + 1) * k]])
+        assert sorted(held) == list(range(len(df)))
     for tr, te in folds:
         assert not set(tr) & set(te)
         assert abs(df.iloc[te][CFG["target"]].mean() - df[CFG["target"]].mean()) < 0.01
@@ -93,4 +97,6 @@ def test_no_target_or_protected_columns_in_features():
     for name, cols in fs.items():
         for banned in (CFG["target"], "gender_female", CFG["thin_col"]):
             assert banned not in cols, f"{banned} in feature set {name}"
-    assert fs["alt"] == list(load_yaml("simulator.yaml")["variables"])
+    act = load_yaml("actionability.yaml")["features"]
+    expected = [v for v in load_yaml("simulator.yaml")["variables"] if act[v].get("model_feature", True)]
+    assert fs["alt"] == expected

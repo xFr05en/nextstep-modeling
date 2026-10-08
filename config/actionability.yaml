@@ -6,6 +6,7 @@ conventions:
   model_output: probability_of_default
   monotone: +1 = feature up -> PD up; -1 = feature up -> PD down; 0 = none
   months_per_step: team assumption, subject to sensitivity analysis
+  model_feature: optional; false = not a model feature (default true)
 classes:
   ACTIONABLE:
     label_ko: 조치 가능
@@ -206,11 +207,11 @@ features:
     monotone: 0
     protected: false
     dice_vary: false
-  telecom_ontime_rate:
+  telecom_payment_rate:
     label_ko: 통신요금 정시납부율(최근 12개월)
     label_en: Phone bill on-time payment rate (last 12 months)
-    note_ko: "정시 납부한 달마다 1/12씩 오름. 분포는 베타 제안. 목표 상관 -0.3~-0.5. 업데이트(3단계): Beta(8, 1.5) 분포, 코퓰라 잠재 상관 -0.35, 관측 Pearson -0.27. 신용 행동과 연결(가중치 1.0, b = 0.30)."
-    note_en: "Rises by 1/12 for each month paid on time. Suggested distribution: Beta. Target correlation -0.3 to -0.5. Update (Step 3): Beta(8, 1.5) marginal, copula latent correlation -0.35, observed Pearson -0.27. Linked to credit behavior (weight 1.0, b = 0.30)."
+    note_ko: "정시 납부한 달마다 1/12씩 오름. 분포는 베타 제안. 목표 상관 -0.3~-0.5. 업데이트(3단계): Beta(8, 1.5) 분포, 코퓰라 잠재 상관 -0.35, 관측 Pearson -0.27. 신용 행동과 연결(가중치 1.0, b = 0.30). 업데이트(미션 준수): 미션 변수명에 맞춰 telecom_ontime_rate에서 이름 변경. 관측 Pearson r -0.32로 보정, 다른 미션 변수와 공통 요인 공유."
+    note_en: "Rises by 1/12 for each month paid on time. Suggested distribution: Beta. Target correlation -0.3 to -0.5. Update (Step 3): Beta(8, 1.5) marginal, copula latent correlation -0.35, observed Pearson -0.27. Linked to credit behavior (weight 1.0, b = 0.30). Update (mission compliance): renamed from telecom_ontime_rate to the mission name. Calibrated to observed Pearson r -0.32 and shares a common factor with the other mission variables."
     source: simulated
     actionability: ACTIONABLE
     direction: increase
@@ -223,11 +224,11 @@ features:
     monotone: -1
     protected: false
     dice_vary: true
-  utility_ontime_rate:
+  utility_payment_rate:
     label_ko: 공과금(전기·가스·수도) 정시납부율(최근 12개월)
     label_en: Utility bill (electricity, gas, water) on-time rate (last 12 months)
-    note_ko: "통신요금 납부율과 상관이 높을 가능성. 둘 사이 상관도 확인 필요. 목표 상관 -0.3~-0.5. 업데이트(3단계): 통신요금 납부율과 같은 설정. 둘 사이 상관 0.19(상한 0.60)로 잡음 추가 불필요."
-    note_en: "Likely highly correlated with the phone bill rate; check the correlation between them too. Target correlation -0.3 to -0.5. Update (Step 3): same setup as the phone bill rate. Correlation between the two is 0.19 (cap 0.60), so no extra noise was needed."
+    note_ko: "통신요금 납부율과 상관이 높을 가능성. 둘 사이 상관도 확인 필요. 목표 상관 -0.3~-0.5. 업데이트(3단계): 통신요금 납부율과 같은 설정. 둘 사이 상관 0.19(상한 0.60)로 잡음 추가 불필요. 업데이트(미션 준수): 미션 변수명에 맞춰 utility_ontime_rate에서 이름 변경. 관측 Pearson r -0.32로 보정, 다른 미션 변수와 공통 요인 공유."
+    note_en: "Likely highly correlated with the phone bill rate; check the correlation between them too. Target correlation -0.3 to -0.5. Update (Step 3): same setup as the phone bill rate. Correlation between the two is 0.19 (cap 0.60), so no extra noise was needed. Update (mission compliance): renamed from utility_ontime_rate to the mission name. Calibrated to observed Pearson r -0.32 and shares a common factor with the other mission variables."
     source: simulated
     actionability: ACTIONABLE
     direction: increase
@@ -277,8 +278,8 @@ features:
   autopay_ratio:
     label_ko: 정기 청구서 자동이체 등록 비율
     label_en: Share of recurring bills on autopay
-    note_ko: "즉시 바꿀 수 있어 '쉬운 경로'가 됨. 그러나 자동이체 설정이 실제 위험을 낮추지는 않아 악용 우려가 있음. 경로 포함 여부는 팀 결정. 3단계: 6단계 이산 분포, 잠재 상관 -0.35, 신용 연결 가중치 0.5. 결정(점검 후): 자동이체 설정은 실제 위험을 낮추지 않으므로 경로에서 제외(dice_vary: false). 모델 변수로는 유지. 점검에서 거절자 4,318명에게 가장 쉬운 단일 경로(약 2.5개월)였음. 이후 분류를 권장 불가(NOT_RECOMMENDED)로 변경. 단조 제약 -1은 유지하여 최종 모델은 그대로. SHAP 거절 사유에서는 '참고(변경 불가)'로 표시."
-    note_en: "Can be changed immediately, creating an 'easy path'. But setting autopay does not lower real risk, so there is a gaming concern. Team to decide on inclusion in paths. Step 3: 6-step discrete marginal, latent correlation -0.35, credit-link weight 0.5. Decision (after the audit): removed from recourse paths (dice_vary: false) because setting up autopay does not lower real risk. Kept as a model feature. In the audit it was the easiest single path for 4,318 rejected applicants (about 2.5 months). Then reclassified as NOT_RECOMMENDED. Monotone stays -1, so the final model is unchanged. Shown as 'reference (not changeable)' in SHAP rejection reasons."
+    note_ko: "즉시 바꿀 수 있어 '쉬운 경로'가 됨. 그러나 자동이체 설정이 실제 위험을 낮추지는 않아 악용 우려가 있음. 경로 포함 여부는 팀 결정. 3단계: 6단계 이산 분포, 잠재 상관 -0.35, 신용 연결 가중치 0.5. 결정(점검 후): 자동이체 설정은 실제 위험을 낮추지 않으므로 경로에서 제외(dice_vary: false). 모델 변수로는 유지. 점검에서 거절자 4,318명에게 가장 쉬운 단일 경로(약 2.5개월)였음. 이후 분류를 권장 불가(NOT_RECOMMENDED)로 변경. 단조 제약 -1은 유지하여 최종 모델은 그대로. SHAP 거절 사유에서는 '참고(변경 불가)'로 표시. 업데이트(미션 준수): 조작 가능한 변수가 승인 결정을 좌우하지 않도록 모델 변수에서도 제외(model_feature: false). 데이터셋에는 남아 있음."
+    note_en: "Can be changed immediately, creating an 'easy path'. But setting autopay does not lower real risk, so there is a gaming concern. Team to decide on inclusion in paths. Step 3: 6-step discrete marginal, latent correlation -0.35, credit-link weight 0.5. Decision (after the audit): removed from recourse paths (dice_vary: false) because setting up autopay does not lower real risk. Kept as a model feature. In the audit it was the easiest single path for 4,318 rejected applicants (about 2.5 months). Then reclassified as NOT_RECOMMENDED. Monotone stays -1, so the final model is unchanged. Shown as 'reference (not changeable)' in SHAP rejection reasons. Update (mission compliance): also excluded from the model features (model_feature: false) so a gameable variable does not drive decisions. It stays in the dataset."
     source: simulated
     actionability: NOT_RECOMMENDED   # reclassified after the audit; monotone stays -1 (model unchanged)
     direction: increase
@@ -290,7 +291,59 @@ features:
     months_per_step: 0.5
     monotone: -1
     protected: false
-    dice_vary: false   # not used in paths; still a model feature
+    dice_vary: false   # not used in paths
+    model_feature: false   # excluded from the model; kept in the simulated dataset
+  spending_consistency:
+    label_ko: 소비 일관성 점수(0~100)
+    label_en: Spending consistency score (0 to 100)
+    note_ko: "미션 대체 변수. 월별 소비가 일정할수록 높음. 소비 습관을 바꾸면 올릴 수 있으므로 조치 가능. 단위 변화량(5점), 난이도(2), 단계당 기간(1개월)은 팀 가정이며 멘토 검토 필요. 시뮬레이션: Beta(5, 2) × 100, 관측 Pearson r -0.32, 공통 요인 공유, 신용 연결 가중치 0.5."
+    note_en: "Mission alternative variable. Higher when monthly spending is steadier. Can be raised by changing spending habits, so actionable. Step size (5 points), difficulty (2) and months per step (1) are team assumptions that need mentor review. Simulated as Beta(5, 2) x 100, observed Pearson r -0.32, shares the common factor, credit-link weight 0.5."
+    source: simulated
+    actionability: ACTIONABLE
+    direction: increase
+    step: 5
+    bounds:
+    - 0.0
+    - 100.0
+    difficulty: 2
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: true
+  regular_payment_count:
+    label_ko: 정기결제 건수(0~20)
+    label_en: Number of recurring payments (0 to 20)
+    note_ko: "미션 대체 변수. 정기결제를 늘리는 것은 쉽게 조작할 수 있고 실제 위험을 낮추지 않으므로(자동이체와 같은 이유) 권장 불가, 경로에서 제외. 모델 변수로는 사용. 시뮬레이션: Binomial(20, 0.75), 0~20, 관측 Pearson r -0.32, 공통 요인 공유. 미션 예시와 달리 소득과 연결하지 않음."
+    note_en: "Mission alternative variable. Adding recurring payments is easy to game and does not lower real risk (same reason as autopay), so not recommended and excluded from paths. Still a model feature. Simulated as Binomial(20, 0.75), 0 to 20, observed Pearson r -0.32, shares the common factor. Unlike the mission example, not linked to income."
+    source: simulated
+    actionability: NOT_RECOMMENDED
+    direction: increase
+    step: 1
+    bounds:
+    - 0.0
+    - 20.0
+    difficulty: 1
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: false
+  app_login_frequency:
+    label_ko: 앱 로그인 빈도(0~30)
+    label_en: App login frequency (0 to 30)
+    note_ko: "미션 대체 변수. 로그인을 늘리는 것은 순수한 조작이므로 권장 불가, 경로에서 제외. 모델 변수로는 사용. 미션 예시는 연령과 연결하지만, 연령은 보호 속성이므로 의도적으로 연결하지 않음(신용 부분은 연체 횟수와 사용률만 사용). 시뮬레이션: Binomial(30, 0.75), 0~30(로그인한 날 수), 관측 Pearson r -0.32, 공통 요인 공유."
+    note_en: "Mission alternative variable. Logging in more is pure gaming, so not recommended and excluded from paths. Still a model feature. The mission example links it to age; it is deliberately not linked to age, a protected attribute (the credit part uses only past-due counts and utilization). Simulated as Binomial(30, 0.75), 0 to 30 (days with a login), observed Pearson r -0.32, shares the common factor."
+    source: simulated
+    actionability: NOT_RECOMMENDED
+    direction: increase
+    step: 1
+    bounds:
+    - 0.0
+    - 30.0
+    difficulty: 1
+    months_per_step: 1.0
+    monotone: -1
+    protected: false
+    dice_vary: false
   pastdue_special_code:
     label_ko: 연체 횟수 특수코드(96/98) 표시
     label_en: Past-due special code (96/98) flag

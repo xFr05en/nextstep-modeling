@@ -7,6 +7,9 @@ Sex (from attribute 9) and foreign worker are never model features; they are kep
 Encoding and scaling are pipeline steps, so they are fit on training folds only.
 
 Run:  python -m src.german
+
+Note: this model is not saved to models/. If it ever is, use the versioned name rule from
+config/train.yaml, e.g. models/german_xgboost_v1.0.joblib.
 """
 from __future__ import annotations
 
@@ -21,9 +24,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, roc_auc_score
 from sklearn.model_selection import RepeatedStratifiedKFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from xgboost import XGBClassifier
 
+from src.data.loader import load_german
+from src.data.preprocessor import make_onehot_encoder, make_scaler
 from src.evaluate import ks_stat
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,8 +39,8 @@ def load_config(path: Path | str = DEFAULT_CONFIG) -> dict:
         return yaml.safe_load(f)
 
 
-def load_raw(cfg: dict, path: Path | None = None) -> pd.DataFrame:
-    return pd.read_csv(path or ROOT / cfg["raw_path"], sep=r"\s+", header=None, names=cfg["columns"])
+def load_raw(cfg: dict, path: Path | None = None, verbose: bool = False) -> pd.DataFrame:
+    return load_german(path or ROOT / cfg["raw_path"], verbose=verbose)
 
 
 def decode(raw: pd.DataFrame, cfg: dict) -> pd.DataFrame:
@@ -67,11 +71,10 @@ def onehot_name(feature: str, category) -> str:
 
 def build_pipeline(model: str, cfg: dict, constrained: bool = True) -> Pipeline:
     numeric, categorical = feature_lists(cfg)
-    num_step = StandardScaler() if model == "lr" else "passthrough"
+    num_step = make_scaler() if model == "lr" else "passthrough"
     prep = ColumnTransformer(
         [("num", num_step, numeric),
-         ("cat", OneHotEncoder(handle_unknown="ignore", sparse_output=False,
-                               feature_name_combiner=onehot_name), categorical)],
+         ("cat", make_onehot_encoder(feature_name_combiner=onehot_name), categorical)],
         verbose_feature_names_out=False,
     ).set_output(transform="pandas")
     if model == "lr":

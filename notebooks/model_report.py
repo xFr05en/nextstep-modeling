@@ -1,6 +1,8 @@
-"""Figures for the Step 5 model report. Reads the CSV/JSON outputs of `python -m src.train`.
+"""Figures and SHAP summary for the model report. Reads the outputs of `python -m src.train`.
 
-Writes reports/figures/11_model_comparison_{ko,en}.png and 12_grades_{ko,en}.png
+Writes reports/figures/11_model_comparison_{ko,en}.png, 12_grades_{ko,en}.png (test set) and
+reports/shap_global_top10.csv (mean |SHAP| of the shipped model on the test set, with each
+feature's actionability class; TreeSHAP values from XGBoost's pred_contribs).
 Run from the project root:  python notebooks/model_report.py
 """
 from __future__ import annotations
@@ -92,6 +94,30 @@ def fig_grades(gt: pd.DataFrame, lang: str) -> None:
     save(fig, "12_grades", lang)
 
 
+def shap_top10() -> pd.DataFrame:
+    import joblib
+    import xgboost as xgb
+    import yaml
+
+    from src.features import feature_sets
+
+    summary = json.loads((ROOT / "reports" / "final_summary.json").read_text())
+    est = joblib.load(ROOT / summary["model_file"])
+    feats = feature_sets()["all"]
+    sim = pd.read_csv(ROOT / "data" / "processed" / "gmsc_sim.csv")
+    split = pd.read_csv(ROOT / "data" / "processed" / "split.csv").set_index("row_id")["split"]
+    X = sim.loc[split[split == "test"].index, feats].astype(float)
+    contrib = est.named_steps["model"].get_booster().predict(
+        xgb.DMatrix(est[:-1].transform(X), feature_names=feats), pred_contribs=True)[:, :-1]
+    act = yaml.safe_load(open(ROOT / "config" / "actionability.yaml", encoding="utf-8"))["features"]
+    imp = pd.Series(np.abs(contrib).mean(0), index=feats).sort_values(ascending=False)
+    top = pd.DataFrame({"rank": range(1, len(imp) + 1), "feature": imp.index,
+                        "mean_abs_shap": imp.round(4).to_numpy(),
+                        "actionability": [act[f]["actionability"] for f in imp.index]}).head(10)
+    top.to_csv(ROOT / "reports" / "shap_global_top10.csv", index=False)
+    return top
+
+
 def main() -> None:
     cmp = pd.read_csv(ROOT / "reports" / "model_comparison.csv")
     gt = pd.read_csv(ROOT / "reports" / "grade_table.csv", index_col="grade")
@@ -101,6 +127,7 @@ def main() -> None:
         fig_comparison(cmp, lang)
         fig_grades(gt, lang)
     print("Saved figures 11 and 12")
+    print(shap_top10().to_string(index=False))
 
 
 if __name__ == "__main__":

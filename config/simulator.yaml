@@ -1,22 +1,43 @@
 # Alternative-data simulator settings (final, owned by Wonbin, last updated 2026-10-05)
 seed: 42
 method: gaussian_copula
-# Target: SeriousDlqin2yrs (1 = default). Charter rule: correlation with the target between 0.3 and 0.5.
-# The rule applies to the copula's LATENT correlation: r(hidden score z, hidden default score T),
-# where T is the truncated-normal liability consistent with the 0/1 target.
-# Observed Pearson and Spearman r with the 0/1 target are reported alongside (expected about 0.18).
+# Target: SeriousDlqin2yrs (1 = default). Charter / mission rule: correlation with the target 0.3 to 0.5.
+# Each variable sets how its target_corr is measured (calibrate_on):
+#   observed: Pearson r between the final variable and the 0/1 target (what df.corr() shows).
+#             Used for the 5 mission variables (mission checklist verifies with df.corr()).
+#   latent:   r(hidden score z, hidden default score T), T = truncated-normal liability.
+#             Used for the 3 extra variables (unchanged from the earlier decision).
 target_corr_range: [0.30, 0.50]
-# Latent score per variable:  z = -(a * T + b * credit_weight * C) + noise * e
-#   a is calibrated so that r(z, T) equals target_corr (the credit part is included in z).
-#   credit_weight scales the global credit_link.b per variable. noise is the starting noise weight.
+# Hidden score per variable:  z = -(a * T + b * credit_weight * C) + g * F + noise * e
+#   a is calibrated per variable to hit target_corr (credit part included).
+#   F is one random factor shared by the shared_factor variables only (g = 0 for the others);
+#   g is searched so their inter-correlation hits shared_factor.target.
+#   C uses only past-due counts and utilization (no age, no gender).
 variables:
-  telecom_ontime_rate:   {target_corr: -0.35, credit_weight: 1.0, noise: 1.0, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
-  utility_ontime_rate:   {target_corr: -0.35, credit_weight: 1.0, noise: 1.0, marginal: beta,     params: {a: 8.0, b: 1.5}, round_to: 0.0833}
-  telecom_tenure_months: {target_corr: -0.35, credit_weight: 0.5, noise: 1.0, marginal: gamma,    params: {shape: 2.0, scale: 24.0}, clip: [0, 240], integer: true, age_cap: true}
-  insurance_paid_months: {target_corr: -0.35, credit_weight: 0.5, noise: 1.0, marginal: binomial, params: {n: 24, p: 0.75}}
-  autopay_ratio:         {target_corr: -0.35, credit_weight: 0.5, noise: 1.0, marginal: discrete, values: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+  # Mission variables (names fixed by the mission checklist)
+  telecom_payment_rate:  {target_corr: -0.32, calibrate_on: observed, shared_factor: true, credit_weight: 1.0, noise: 1.0, marginal: beta, params: {a: 8.0, b: 1.5}, round_to: 0.0833}
+  utility_payment_rate:  {target_corr: -0.32, calibrate_on: observed, shared_factor: true, credit_weight: 1.0, noise: 1.0, marginal: beta, params: {a: 8.0, b: 1.5}, round_to: 0.0833}
+  # Extra variables (kept from the original design)
+  telecom_tenure_months: {target_corr: -0.35, calibrate_on: latent, credit_weight: 0.5, noise: 1.0, marginal: gamma,    params: {shape: 2.0, scale: 24.0}, clip: [0, 240], integer: true, age_cap: true}
+  insurance_paid_months: {target_corr: -0.35, calibrate_on: latent, credit_weight: 0.5, noise: 1.0, marginal: binomial, params: {n: 24, p: 0.75}}
+  autopay_ratio:         {target_corr: -0.35, calibrate_on: latent, credit_weight: 0.5, noise: 1.0, marginal: discrete, values: [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]}
+  # Mission variables added later (appended so the extras keep their random draws)
+  spending_consistency:  {target_corr: -0.32, calibrate_on: observed, shared_factor: true, credit_weight: 0.5, noise: 1.0, marginal: beta, params: {a: 5.0, b: 2.0}, scale: 100, decimals: 1}
+  # Binomial with p > 0.5 (long left tail, like the payment rates): defaulters in the low tail are not
+  # bunched together, so observed r = -0.32 needs a weaker hidden link than Poisson (AUC alone 0.83 vs 0.86).
+  regular_payment_count: {target_corr: -0.32, calibrate_on: observed, shared_factor: true, credit_weight: 0.5, noise: 1.0, marginal: binomial, params: {n: 20, p: 0.75}}
+  # No age link on purpose (the mission example ties it to age; age is a protected attribute)
+  app_login_frequency:   {target_corr: -0.32, calibrate_on: observed, shared_factor: true, credit_weight: 0.5, noise: 1.0, marginal: binomial, params: {n: 30, p: 0.75}}
+# Shared factor for the mission variables: overlapping information limits how much they add together.
+# target.stat: mean or max of the pairwise Pearson r among the shared_factor variables.
+shared_factor:
+  target: {stat: max, value: 0.595}
+  tolerance: 0.005
+  g_max: 10.0
+  max_iter: 40
 calibration:
-  tolerance: 0.001      # allowed gap between latent r(z, T) and target_corr
+  tolerance_latent: 0.001     # allowed gap for latent targets
+  tolerance_observed: 0.005   # allowed gap for observed targets (mission rule: -0.32 +/- 0.005)
   a_max: 20.0
   max_iter: 60
 # Link to existing credit behavior (credit part of the latent score)
@@ -32,17 +53,36 @@ credit_link:
   # Utilization outliers (>10, set missing in Step 1, 7.05% default ~ average) get a neutral score.
 # Tenure cannot exceed time since this age (months); a logical limit, not a modeled link
 tenure_min_age: 18
-# Max allowed Pearson r between any two alternative variables
+# Max allowed Pearson r between any two alternative variables (all 8)
 max_inter_corr: 0.60
-# If the two on-time rates exceed the cap, raise both noise weights by this step and recalibrate
-noise_step: 0.1
-noise_max_rounds: 50
+# Mission fairness age bands (used for reporting and, in Step 2, bias_ratio)
+age_bands: {edges: [0, 34, 54, 200], labels: ["20-34", "35-54", "55+"]}
+# Scenario parameters (mission checklist: thin_filer_ratio and bias_ratio must change the output).
+# Our defaults differ from the mission example (thin_filer_ratio=0.3, bias_ratio=0.1) on purpose:
+# the final model is trained on the natural thin-filer share and on unbiased data. The other values
+# are for scenario analysis only.
+scenario:
+  thin_filer_ratio: null   # None = natural share (7.71% with the proxy rule); else (0, 1), reached by
+                           # subsampling the larger group without replacement (total rows shrink)
+  # thin_filer_mode: how thin_filer_ratio is applied.
+  #   subsample (default): reach the ratio by subsampling; thin_filer = proxy rule. Used for the final
+  #     model and every official number.
+  #   mask (demonstration only): blank the 3 past-due columns for a random share of rows (seeded), so
+  #     the mission rule (2+ missing past-due columns) flags thin_filer_ratio of the rows;
+  #     thin_filer = mission rule. Not used for the final model.
+  thin_filer_mode: subsample
+  bias_ratio: 0.0          # [0, 1]; shifts the protected group's hidden scores down by bias_ratio x SD
+                           # (1 = 1 SD) for every alternative variable; 0 = no shift
+  protected: {gender: female, age_band: "20-34"}   # women OR the mission's youngest age band
 gender:
   generate: true
   p_female: 0.5
   independent_of_target: true
 thin_filer:
+  # Proxy rule used for every official number (see data_report, "Thin-filer definition")
   rule: "NumberOfOpenCreditLinesAndLoans <= 2 and NumberRealEstateLoansOrLines == 0"
+  # Mission rule, implemented in src.features.is_thin_filer_mission; GMSC has no card-history column
+  mission: {min_missing: 2, card_history_column: null, min_card_months: 12}
 outputs:
   main: data/processed/gmsc_sim.csv
   target_only: data/processed/gmsc_sim_target_only.csv
