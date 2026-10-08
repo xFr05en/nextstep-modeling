@@ -1,3 +1,3 @@
-model,resampling,monotone_set,dropped,auc_unconstrained,auc_constrained,mono_auc_loss,n_constrained,selected
-lgbm,none,full,none,0.94362,0.94398,-0.00035,13,True
-xgb,none,full,none,0.94422,0.94421,1e-05,13,True
+model,resampling,monotone_set,dropped,evaluated_on,auc_unconstrained,auc_constrained,mono_auc_loss,loss_ci95_low,loss_ci95_high,n_constrained,selected
+lgbm,none,full,none,validation,0.94295,0.94363,-0.00068,-0.002,0.0006,13,True
+xgb,none,full,none,validation,0.94378,0.9438,-2e-05,-0.0012,0.0011,13,True

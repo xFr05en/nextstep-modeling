@@ -28,29 +28,66 @@
       "app_login_frequency": -1
     }
   },
-  "metrics": {
-    "auc_mean": 0.9442,
-    "auc_std": 0.0034,
-    "ks_mean": 0.7415,
-    "ks_std": 0.0068,
-    "thin_auc_mean": 0.9392,
-    "thin_auc_std": 0.0051,
-    "psi_mean": 0.0006,
-    "psi_std": 0.0002,
-    "brier_mean": 0.0357,
-    "brier_std": 0.001,
-    "thin_auc_gain_mean": 0.0925,
-    "thin_auc_gain_std": 0.0146,
-    "mono_auc_loss": 0.0
+  "trained_on": "train+validation",
+  "evaluated_on": "test",
+  "split_rows": {
+    "train": 104999,
+    "validation": 22500,
+    "test": 22500
   },
-  "brier_before_calibration": 0.03569,
-  "brier_after_calibration": null,
-  "mean_pd_oof": 0.0667,
-  "approval_rate": 0.8663,
-  "approval_rate_thin": 0.7419,
-  "approval_rate_not_thin": 0.8767,
-  "default_rate_approved": 0.0149,
-  "default_rate_declined": 0.4031,
+  "cv_on_train": {
+    "auc_mean": 0.9423,
+    "auc_std": 0.0021,
+    "ks_mean": 0.7354,
+    "thin_auc_mean": 0.9383
+  },
+  "test": {
+    "auc": 0.9492,
+    "auc_ci95": [
+      0.9439,
+      0.9533
+    ],
+    "ks": 0.76,
+    "ks_ci95": [
+      0.7451,
+      0.7756
+    ],
+    "thin_auc": 0.9318,
+    "thin_auc_gmsc_only": 0.8613,
+    "thin_auc_lift": 0.0706,
+    "thin_auc_lift_ci95": [
+      0.0519,
+      0.092
+    ],
+    "psi_trainval_vs_test": 0.00038,
+    "brier": 0.03519,
+    "precision": 0.4141,
+    "recall": 0.8098,
+    "f1": 0.548,
+    "f1_ci95": [
+      0.5293,
+      0.5663
+    ],
+    "rows": 22500,
+    "thin_rows": 1761,
+    "thin_defaults": 221
+  },
+  "monotonic_loss_validation": {
+    "loss": -0.0,
+    "ci95": [
+      -0.0012,
+      0.0011
+    ],
+    "evaluated_on": "validation"
+  },
+  "cutoff_rule": "approve if grade in approve_grades (score >= 475), fixed in config/scoring.yaml",
+  "mean_pd_test": 0.066,
+  "default_rate_test": 0.0668,
+  "approval_rate": 0.8693,
+  "approval_rate_thin": 0.7467,
+  "approval_rate_not_thin": 0.8797,
+  "default_rate_approved": 0.0146,
+  "default_rate_declined": 0.4141,
   "monotonic_violations": {
     "RevolvingUtilizationOfUnsecuredLines": 0,
     "NumberOfTime30-59DaysPastDueNotWorse": 0,
@@ -67,9 +104,9 @@
     "app_login_frequency": 0
   },
   "charter": {
-    "auc>=0.78": true,
-    "ks>=0.28": true,
-    "thin_gain>=0.03": true,
+    "test_auc>=0.78": true,
+    "test_ks>=0.28": true,
+    "thin_lift>=0.03": true,
     "psi<0.1": true,
     "mono_loss<=0.01": true
   },
@@ -80,5 +117,5 @@
     "xgboost.sklearn.XGBClassifier"
   ],
   "mlflow_run_name": "xgb__both__none__mono-full__final",
-  "mlflow_run_id": "0540be4848544f999d99bf1ea413008d"
+  "mlflow_run_id": "6860a8307129454291edee5cda4bf928"
 }

@@ -33,9 +33,10 @@ from lightgbm import LGBMClassifier  # noqa: E402
 from mlflow.models import infer_signature  # noqa: E402
 from sklearn.base import BaseEstimator, TransformerMixin  # noqa: E402
 from sklearn.calibration import CalibratedClassifierCV  # noqa: E402
+from sklearn.metrics import brier_score_loss, roc_auc_score  # noqa: E402
 from sklearn.impute import SimpleImputer  # noqa: E402
 from sklearn.linear_model import LogisticRegression  # noqa: E402
-from sklearn.model_selection import StratifiedKFold  # noqa: E402
+from sklearn.model_selection import StratifiedKFold, train_test_split  # noqa: E402
 from sklearn.preprocessing import StandardScaler  # noqa: E402
 from xgboost import XGBClassifier  # noqa: E402
 
@@ -44,7 +45,8 @@ from src.features import feature_sets  # noqa: E402
 from src.scoring import load_config as load_scoring, score_frame  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-SUMMARY_KEYS = [ev.KEY_AUC, ev.KEY_KS, ev.KEY_THIN_AUC, ev.KEY_PSI, ev.KEY_BRIER]
+SUMMARY_KEYS = [ev.KEY_AUC, ev.KEY_KS, ev.KEY_THIN_AUC, ev.KEY_PSI, ev.KEY_BRIER,
+                ev.KEY_PRECISION, ev.KEY_RECALL, ev.KEY_F1]
 
 
 def load_yaml(name: str) -> dict:
@@ -117,6 +119,24 @@ def monotone_vector(features: list[str], dropped: tuple[str, ...] = ()) -> list[
 
 
 # ---- Cross-validation ----
+
+def make_split(df: pd.DataFrame, cfg: dict) -> pd.Series:
+    """Stratified (stratify=y) train / validation / test labels, e.g. 70:15:15. Index = df.index."""
+    sp = cfg["split"]
+    y = df[cfg["target"]]
+    rest, test = train_test_split(df.index, test_size=sp["test"], stratify=y, random_state=sp["seed"])
+    val_share = sp["validation"] / (sp["train"] + sp["validation"])
+    train, val = train_test_split(rest, test_size=val_share, stratify=y.loc[rest], random_state=sp["seed"])
+    labels = pd.Series("train", index=df.index, name="split")
+    labels.loc[val] = "validation"
+    labels.loc[test] = "test"
+    return labels
+
+
+def save_split(labels: pd.Series, cfg: dict) -> None:
+    out = ROOT / cfg["outputs"]["split"]
+    pd.DataFrame({"row_id": labels.index, "split": labels.to_numpy()}).to_csv(out, index=False)
+
 
 def make_folds(df: pd.DataFrame, cfg: dict) -> list[tuple[np.ndarray, np.ndarray]]:
     strata = df[cfg["target"]].to_numpy() * 2 + df[cfg["thin_col"]].to_numpy()
@@ -225,33 +245,43 @@ def stage_compare(df, folds, cfg, fs) -> pd.DataFrame:
     return out
 
 
-def stage_monotonic(df, folds, cfg, fs, comparison: pd.DataFrame) -> pd.DataFrame:
+def stage_monotonic(train, val, cfg, fs, comparison: pd.DataFrame) -> pd.DataFrame:
+    """Constraint cost measured on validation: unconstrained vs constrained, both fit on train."""
     feats = fs["both"]
-    mc = cfg["monotonic"]
+    mc, bs = cfg["monotonic"], cfg["bootstrap"]
+    X_tr, y_tr = train[feats].astype(float), train[cfg["target"]].to_numpy()
+    X_va, y_va = val[feats].astype(float), val[cfg["target"]].to_numpy()
     rows = []
     for name in mc["models"]:
         cand = comparison[(comparison["model"] == name) & (comparison["features"] == "both")]
         res = pick_winner(cand, cfg)["resampling"]
-        base_pf, _ = cross_validate(df, folds, cfg, name, feats, res)
-        log_run(cfg, "monotonic", f"{name}__both__{res}__mono-none",
-                {"model": name, "feature_set": "both", "resampling": res, "monotone_set": "none"},
-                base_pf, {}, feats)
+        p_base = make_estimator(name, feats, res, cfg, y_tr).fit(X_tr, y_tr).predict_proba(X_va)[:, 1]
+        auc_base = roc_auc_score(y_va, p_base)
         dropped: list[str] = []
         for step in range(len(mc["drop_order"]) + 1):
             mono = monotone_vector(feats, tuple(dropped))
-            pf, _ = cross_validate(df, folds, cfg, name, feats, res, monotone=mono)
-            loss = float((base_pf[ev.KEY_AUC] - pf[ev.KEY_AUC]).mean())
+            p_con = make_estimator(name, feats, res, cfg, y_tr, mono).fit(X_tr, y_tr).predict_proba(X_va)[:, 1]
+            auc_con = roc_auc_score(y_va, p_con)
+            loss = auc_base - auc_con
+            ci = ev.bootstrap_ci(lambda i: roc_auc_score(y_va[i], p_base[i]) - roc_auc_score(y_va[i], p_con[i]),
+                                 len(y_va), bs["n"], bs["seed"])
             label = "full" if not dropped else "no-" + "-".join(d.lower()[:12] for d in dropped)
-            log_run(cfg, "monotonic", f"{name}__both__{res}__mono-{label}",
-                    {"model": name, "feature_set": "both", "resampling": res, "monotone_set": label,
-                     "dropped_constraints": ",".join(dropped) or "none"},
-                    pf, {ev.KEY_MONO_LOSS: loss}, feats, mono)
+            use_experiment(cfg, "monotonic")
+            with mlflow.start_run(run_name=f"{name}__both__{res}__mono-{label}"):
+                mlflow.set_tags({"step": "5", "stage": "monotonic", "owner": "wonbin", "evaluated_on": "validation"})
+                mlflow.log_params({"model": name, "feature_set": "both", "resampling": res, "monotone_set": label,
+                                   "dropped_constraints": ",".join(dropped) or "none", "seed": cfg["seed"],
+                                   "data_md5": data_md5(cfg)})
+                mlflow.log_metrics({"val_auc_unconstrained": auc_base, "val_auc_constrained": auc_con,
+                                    ev.KEY_MONO_LOSS: loss, f"{ev.KEY_MONO_LOSS}_ci_low": ci[0],
+                                    f"{ev.KEY_MONO_LOSS}_ci_high": ci[1]})
+                mlflow.log_dict(dict(zip(feats, mono)), "monotone.json")
             rows.append({"model": name, "resampling": res, "monotone_set": label,
-                         "dropped": ",".join(dropped) or "none",
-                         "auc_unconstrained": float(base_pf[ev.KEY_AUC].mean()),
-                         "auc_constrained": float(pf[ev.KEY_AUC].mean()),
-                         ev.KEY_MONO_LOSS: loss, "n_constrained": int(np.count_nonzero(mono))})
-            print(f"{name} {res} mono-{label}: AUC {rows[-1]['auc_constrained']:.4f} loss {loss:+.4f}")
+                         "dropped": ",".join(dropped) or "none", "evaluated_on": "validation",
+                         "auc_unconstrained": auc_base, "auc_constrained": auc_con,
+                         ev.KEY_MONO_LOSS: loss, "loss_ci95_low": ci[0], "loss_ci95_high": ci[1],
+                         "n_constrained": int(np.count_nonzero(mono))})
+            print(f"{name} {res} mono-{label}: val AUC {auc_con:.4f} loss {loss:+.4f} CI {ci}")
             if loss <= mc["max_auc_loss"] or step == len(mc["drop_order"]):
                 rows[-1]["selected"] = loss <= mc["max_auc_loss"]
                 break
@@ -294,12 +324,16 @@ def log_final_model(est, example: pd.DataFrame) -> list[str]:
     return trusted
 
 
-def stage_final(df, folds, cfg, fs, comparison, monotonic) -> dict:
+def stage_final(train, val, test, cfg, fs, comparison, monotonic) -> dict:
+    """Fit the winner on train+validation and evaluate it once on the test set.
+
+    Thresholds are fixed rules from config/scoring.yaml; no test data is used to set anything."""
     winner = pick_winner(comparison[comparison["features"] == "both"], cfg)
     name, res = winner["model"], winner["resampling"]
     feats = fs["both"]
     dropped: tuple[str, ...] = ()
     mono = None
+    sel = None
     if name in cfg["monotonic"]["models"]:
         sel = monotonic[(monotonic["model"] == name) & (monotonic["selected"] == True)]  # noqa: E712
         if sel.empty:
@@ -307,49 +341,80 @@ def stage_final(df, folds, cfg, fs, comparison, monotonic) -> dict:
         d = sel.iloc[0]["dropped"]
         dropped = () if d == "none" else tuple(d.split(","))
         mono = monotone_vector(feats, dropped)
+    # Calibration (only if resampled): CalibratedClassifierCV with internal CV, refit on train+validation
     calibrate = res != "none"
+    target, thin_col = cfg["target"], cfg["thin_col"]
+    tv = pd.concat([train, val])
+    X_tv, y_tv = tv[feats].astype(float), tv[target].to_numpy()
+    X_te, y_te = test[feats].astype(float), test[target].to_numpy()
+    thin = test[thin_col].to_numpy() == 1
 
-    pf_raw, oof_raw = cross_validate(df, folds, cfg, name, feats, res, mono)
-    pf, oof = (cross_validate(df, folds, cfg, name, feats, res, mono, calibrate=True)
-               if calibrate else (pf_raw, oof_raw))
-    # Thin-filer gain for the final setup: same model/resampling/calibration on GMSC features only
+    final_est = make_estimator(name, feats, res, cfg, y_tv, mono, calibrate).fit(X_tv, y_tv)
+    p_te = final_est.predict_proba(X_te)[:, 1]
+    p_tv = final_est.predict_proba(X_tv)[:, 1]
     mono_g = monotone_vector(fs["gmsc"], dropped) if mono else None
-    pf_g, _ = cross_validate(df, folds, cfg, name, fs["gmsc"], res, mono_g, calibrate=calibrate)
-    gain = pf[ev.KEY_THIN_AUC] - pf_g[ev.KEY_THIN_AUC]
-    mono_loss = float(monotonic[(monotonic["model"] == name) & (monotonic["selected"] == True)]  # noqa: E712
-                      .iloc[0][ev.KEY_MONO_LOSS]) if mono else None
+    est_g = make_estimator(name, fs["gmsc"], res, cfg, y_tv, mono_g, calibrate).fit(tv[fs["gmsc"]].astype(float), y_tv)
+    p_g = est_g.predict_proba(test[fs["gmsc"]].astype(float))[:, 1]
 
-    # Scores, grades, approval on out-of-fold PD (never in-sample)
-    sc = score_frame(oof, load_scoring())
-    sc["default"] = df[cfg["target"]].to_numpy()
-    sc["thin_filer"] = df[cfg["thin_col"]].to_numpy()
+    scoring = load_scoring()
+    bs = cfg["bootstrap"]
+    n = len(y_te)
+
+    def thin_auc(p, i):
+        t = thin[i]
+        return roc_auc_score(y_te[i][t], p[i][t])
+
+    def ci(fn):
+        return ev.bootstrap_ci(fn, n, bs["n"], bs["seed"])
+
+    cls = ev.classification_metrics(y_te, p_te, scoring)
+    test_metrics = {
+        "auc": round(roc_auc_score(y_te, p_te), 4), "auc_ci95": ci(lambda i: roc_auc_score(y_te[i], p_te[i])),
+        "ks": round(ev.ks_stat(y_te, p_te), 4), "ks_ci95": ci(lambda i: ev.ks_stat(y_te[i], p_te[i])),
+        "thin_auc": round(thin_auc(p_te, np.arange(n)), 4),
+        "thin_auc_gmsc_only": round(thin_auc(p_g, np.arange(n)), 4),
+        "thin_auc_lift": round(thin_auc(p_te, np.arange(n)) - thin_auc(p_g, np.arange(n)), 4),
+        # Paired bootstrap: same resampled test rows for both models, lift computed inside each resample
+        "thin_auc_lift_ci95": ci(lambda i: thin_auc(p_te, i) - thin_auc(p_g, i)),
+        "psi_trainval_vs_test": round(ev.psi(p_tv, p_te), 5),
+        "brier": round(brier_score_loss(y_te, p_te), 5),
+        **{k: round(float(v), 4) for k, v in cls.items()},
+        "f1_ci95": ci(lambda i: ev.classification_metrics(y_te[i], p_te[i], scoring)[ev.KEY_F1]),
+        "rows": int(n), "thin_rows": int(thin.sum()), "thin_defaults": int(y_te[thin].sum()),
+    }
+    mono_row = sel.iloc[0] if sel is not None else None
+    mono_loss = None if mono_row is None else {
+        "loss": round(float(mono_row[ev.KEY_MONO_LOSS]), 4),
+        "ci95": [round(float(mono_row["loss_ci95_low"]), 4), round(float(mono_row["loss_ci95_high"]), 4)],
+        "evaluated_on": "validation"}
+
+    # Scores, grades, approval on the test set (the shipped model, never in-sample)
+    sc = score_frame(p_te, scoring)
+    sc.insert(0, "row_id", test.index.to_numpy())
+    sc["default"], sc["thin_filer"] = y_te, thin.astype(int)
     grade_tbl = (sc.groupby("grade")
                  .agg(rows=("pd", "size"), mean_pd=("pd", "mean"), default_rate=("default", "mean"),
                       min_score=("score", "min"), max_score=("score", "max"))
                  .assign(share=lambda t: t["rows"] / len(sc),
                          thin_share=sc[sc.thin_filer == 1].groupby("grade").size() / sc.thin_filer.sum()))
     grade_tbl.round(4).to_csv(ROOT / cfg["outputs"]["grade_table"])
-    sc.to_csv(ROOT / cfg["outputs"]["oof"], index=False)
+    sc.to_csv(ROOT / cfg["outputs"]["test_scores"], index=False)
 
-    # Refit on all rows for serving
-    X, y = df[feats].astype(float), df[cfg["target"]].to_numpy()
-    final_est = make_estimator(name, feats, res, cfg, y, mono, calibrate)
-    final_est.fit(X, y)
-    violations = monotonic_violations(final_est, X, feats, mono) if mono else {}
+    violations = monotonic_violations(final_est, X_tv, feats, mono) if mono else {}
     joblib.dump(final_est, ROOT / cfg["outputs"]["model"])
 
-    summ = summarize(pf)
     summary = {
         "winner": {"model": name, "resampling": res, "calibrated": calibrate,
                    "dropped_constraints": list(dropped),
                    "monotone": dict(zip(feats, mono)) if mono else None},
-        "metrics": {**{k: round(v, 4) for k, v in summ.items()},
-                    "thin_auc_gain_mean": round(float(gain.mean()), 4),
-                    "thin_auc_gain_std": round(float(gain.std()), 4),
-                    "mono_auc_loss": None if mono_loss is None else round(mono_loss, 4)},
-        "brier_before_calibration": round(float(pf_raw[ev.KEY_BRIER].mean()), 5),
-        "brier_after_calibration": round(float(pf[ev.KEY_BRIER].mean()), 5) if calibrate else None,
-        "mean_pd_oof": round(float(oof.mean()), 4),
+        "trained_on": "train+validation", "evaluated_on": "test",
+        "split_rows": {k: int(v) for k, v in pd.Series(["train"] * len(train) + ["validation"] * len(val)
+                                                       + ["test"] * len(test)).value_counts().items()},
+        "cv_on_train": {k: round(float(winner[k]), 4) for k in ("auc_mean", "auc_std", "ks_mean", "thin_auc_mean")},
+        "test": test_metrics,
+        "monotonic_loss_validation": mono_loss,
+        "cutoff_rule": "approve if grade in approve_grades (score >= 475), fixed in config/scoring.yaml",
+        "mean_pd_test": round(float(p_te.mean()), 4), "default_rate_test": round(float(y_te.mean()), 4),
         "approval_rate": round(float(sc["approved"].mean()), 4),
         "approval_rate_thin": round(float(sc.loc[sc.thin_filer == 1, "approved"].mean()), 4),
         "approval_rate_not_thin": round(float(sc.loc[sc.thin_filer == 0, "approved"].mean()), 4),
@@ -357,35 +422,39 @@ def stage_final(df, folds, cfg, fs, comparison, monotonic) -> dict:
         "default_rate_declined": round(float(sc.loc[sc.approved == 0, "default"].mean()), 4),
         "monotonic_violations": violations,
     }
-    t = summary["metrics"]
+    t = test_metrics
     summary["charter"] = {
-        "auc>=0.78": t["auc_mean"] >= 0.78,
-        "ks>=0.28": t["ks_mean"] >= 0.28,
-        "thin_gain>=0.03": t["thin_auc_gain_mean"] >= 0.03,
-        "psi<0.1": t["psi_mean"] < 0.1,
-        "mono_loss<=0.01": None if mono_loss is None else mono_loss <= 0.01,
+        "test_auc>=0.78": t["auc"] >= 0.78,
+        "test_ks>=0.28": t["ks"] >= 0.28,
+        "thin_lift>=0.03": t["thin_auc_lift"] >= 0.03,
+        "psi<0.1": t["psi_trainval_vs_test"] < 0.1,
+        "mono_loss<=0.01": None if mono_loss is None else mono_loss["loss"] <= 0.01,
     }
 
     use_experiment(cfg, "final")
     run_name = f"{name}__both__{res}__mono-{'none' if not mono else ('full' if not dropped else 'no-' + '-'.join(d.lower()[:12] for d in dropped))}{'__platt' if calibrate else ''}__final"
     with mlflow.start_run(run_name=run_name):
-        mlflow.set_tags({"step": "5", "stage": "final", "owner": "wonbin"})
+        mlflow.set_tags({"step": "5", "stage": "final", "owner": "wonbin", "trained_on": "train+validation",
+                         "evaluated_on": "test"})
         mlflow.log_params({"model": name, "feature_set": "both", "resampling": res, "calibrated": calibrate,
                            "dropped_constraints": ",".join(dropped) or "none", "seed": cfg["seed"],
-                           "data_md5": data_md5(cfg)})
-        mlflow.log_metrics({k: v for k, v in t.items() if v is not None})
+                           "data_md5": data_md5(cfg),
+                           **{f"hp_{k}": v for k, v in cfg["models"][name].items()}})
+        mlflow.log_metrics({f"test_{k}": float(v) for k, v in t.items() if isinstance(v, (int, float))})
+        if mono_loss:
+            mlflow.log_metric(ev.KEY_MONO_LOSS, mono_loss["loss"])
         mlflow.log_metrics({"approval_rate": summary["approval_rate"],
                             "approval_rate_thin": summary["approval_rate_thin"]})
         mlflow.log_dict(summary, "final_summary.json")
         mlflow.log_text(grade_tbl.round(4).to_csv(), "grade_table.csv")
         mlflow.log_artifact(str(ROOT / "config" / "scoring.yaml"))
         mlflow.log_artifact(str(ROOT / "config" / "actionability.yaml"))
-        summary["skops_trusted_types"] = log_final_model(final_est, X.iloc[:5])
+        summary["skops_trusted_types"] = log_final_model(final_est, X_tv.iloc[:5])
         summary["mlflow_run_name"] = run_name
         summary["mlflow_run_id"] = mlflow.active_run().info.run_id
 
     (ROOT / cfg["outputs"]["final_summary"]).write_text(json.dumps(summary, indent=2), encoding="utf-8")
-    print(json.dumps(summary, indent=2))
+    print(json.dumps({k: summary[k] for k in ("winner", "test", "monotonic_loss_validation", "charter")}, indent=2))
     return summary
 
 
@@ -398,18 +467,21 @@ def main() -> None:
     df = pd.read_csv(ROOT / cfg["data"])
     fs = feature_sets()
     fs = {"gmsc": fs["base"], "alt": fs["alt"], "both": fs["all"]}
-    folds = make_folds(df, cfg)
+    labels = make_split(df, cfg)
+    save_split(labels, cfg)
+    train, val, test = (df[labels == k] for k in ("train", "validation", "test"))
+    folds = make_folds(train.reset_index(drop=True), cfg)
     setup_mlflow(cfg)
 
     out = cfg["outputs"]
     if stage in ("compare", "all"):
-        stage_compare(df, folds, cfg, fs)
+        stage_compare(train.reset_index(drop=True), folds, cfg, fs)
     comparison = pd.read_csv(ROOT / out["comparison"])
     if stage in ("monotonic", "all"):
-        stage_monotonic(df, folds, cfg, fs, comparison)
+        stage_monotonic(train, val, cfg, fs, comparison)
     if stage in ("final", "all"):
         monotonic = pd.read_csv(ROOT / out["monotonic"])
-        stage_final(df, folds, cfg, fs, comparison, monotonic)
+        stage_final(train, val, test, cfg, fs, comparison, monotonic)
 
 
 if __name__ == "__main__":

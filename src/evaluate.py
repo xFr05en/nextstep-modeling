@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from lightgbm import LGBMClassifier
-from sklearn.metrics import brier_score_loss, roc_auc_score, roc_curve
+from sklearn.metrics import brier_score_loss, f1_score, precision_score, recall_score, roc_auc_score, roc_curve
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -59,6 +59,37 @@ KEY_THIN_GAIN = "thin_auc_gain"
 KEY_PSI = "psi"
 KEY_BRIER = "brier"
 KEY_MONO_LOSS = "mono_auc_loss"
+KEY_PRECISION = "precision"
+KEY_RECALL = "recall"
+KEY_F1 = "f1"
+
+
+def predicted_default(pd_: np.ndarray, scoring_cfg: dict | None = None) -> np.ndarray:
+    """1 = predicted default = rejected: score below the approval cutoff in config/scoring.yaml.
+
+    The cutoff is a fixed rule from the config; no data (and never test data) is used to set it."""
+    from src.scoring import load_config as load_scoring, pd_to_score, score_to_grade
+
+    cfg = scoring_cfg or load_scoring()
+    grades = score_to_grade(pd_to_score(pd_, cfg), cfg)
+    return (~np.isin(grades, cfg["approval"]["approve_grades"])).astype(int)
+
+
+def classification_metrics(y, pd_, scoring_cfg: dict | None = None) -> dict:
+    """Precision, recall and F1 for the default class (positive = default) at the score cutoff."""
+    pred = predicted_default(pd_, scoring_cfg)
+    return {KEY_PRECISION: precision_score(y, pred, zero_division=0),
+            KEY_RECALL: recall_score(y, pred, zero_division=0),
+            KEY_F1: f1_score(y, pred, zero_division=0)}
+
+
+def bootstrap_ci(stat, n: int, n_boot: int = 500, seed: int = 0) -> list[float]:
+    """2.5 / 97.5 percentiles of stat(idx) over bootstrap resamples of row indices.
+
+    For paired comparisons (e.g. thin-filer lift), stat computes both models on the same idx."""
+    rng = np.random.default_rng(seed)
+    vals = [stat(rng.integers(0, n, n)) for _ in range(n_boot)]
+    return [round(float(np.percentile(vals, 2.5)), 4), round(float(np.percentile(vals, 97.5)), 4)]
 
 
 def ks_stat(y, score) -> float:
@@ -77,7 +108,7 @@ def psi(expected, actual, n_bins: int = 10, eps: float = 1e-6) -> float:
     return float(np.sum((a - e) * np.log(a / e)))
 
 
-def fold_metrics(y_te, p_te, p_tr, thin_te) -> dict:
+def fold_metrics(y_te, p_te, p_tr, thin_te, scoring_cfg: dict | None = None) -> dict:
     """Metrics for one held-out fold. p_tr = scores on the training fold (for PSI)."""
     return {
         KEY_AUC: roc_auc_score(y_te, p_te),
@@ -85,4 +116,5 @@ def fold_metrics(y_te, p_te, p_tr, thin_te) -> dict:
         KEY_THIN_AUC: roc_auc_score(y_te[thin_te], p_te[thin_te]),
         KEY_PSI: psi(p_tr, p_te),
         KEY_BRIER: brier_score_loss(y_te, p_te),
+        **classification_metrics(y_te, p_te, scoring_cfg),
     }
