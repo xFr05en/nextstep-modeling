@@ -1,191 +1,109 @@
-# Model Audit Report: Recourse, Fairness, Stability, Holdout, Sensitivity
+# Model Audit Report: Recourse, Fairness, Stability, Sensitivity
 
-> Educational use only. Not for real financial decisions. The audit itself changed nothing. After review, two config decisions were made (autopay removed from paths, recourse target 495); their effect is reported in sections 1.6 and 3.1. The final model is unchanged.
+> Educational use only. Not for real financial decisions. The audit changes nothing: configs, the shipped model (`models/xgboost_v1.0.joblib`) and the training MLflow runs stay as they are.
 
-- Code: `notebooks/audit.py` (run `python notebooks/audit.py`, about 3.5 minutes)
-- Numbers: `reports/audit/*.json`. Holdout re-selection tables: `reports/audit/holdout_selection_*.csv`. MLflow experiment: `nextstep-audit`
-- Cutoff: score 475 (lowest score of grade C, from `config/scoring.yaml`)
+- Code: `notebooks/audit.py` (run `python notebooks/audit.py`, about 3 minutes). Numbers: `reports/audit/*.json`. MLflow: `nextstep-audit`, one run per check.
+- Every check uses the official split (`data/processed/split.csv`): decisions and paths on the **test set**, retraining on train + validation. The earlier 80/20 holdout re-selection is dropped; the official split replaces it.
+- Approval cutoff 475 (fixed rule, `config/scoring.yaml`); recourse target 495 (`recourse_target_score`).
+- The simulator uses the target for all rows, test included (as in the mission example), so recourse and performance figures with alternative data are optimistic.
 
 ## Summary
 
 | Check | Result | Verdict |
 |---|---|---|
-| 1. Recourse feasibility (12 months, at most 3 variables) | 99.95% of rejected applicants can reach 475; thin-filers 100% | Feasible, but suspiciously easy (see 1.3) |
-| 1b. Recourse, decided setup (no autopay, target 495) | 98.7% can reach 495; thin-filers 99.8% | Feasible |
-| 2. Fairness by age | Lowest DI 0.81 (under 30); equalized-odds gap 12.3 points | DI passes 0.8 narrowly; **EO gap fails the charter target (≤ 0.10)** |
-| 3. Stability (3 retrained models) | 27.9% of applicants within 30 points of the cutoff flip | Above 10%; 1000 trees at lr 0.02 does not help (29.0%) |
-| 3. Path robustness (charter ≥ 80%) | Original minimal paths (target 475) 59.7% under all 3 models; decided minimal paths (target 495) **90.6%** | Fails at 475; passes at 495 |
-| 4. Holdout (20%, never used for selection) | Same winner. AUC 0.927, KS 0.703, thin-filer gain +0.055 (95% CI 0.039 to 0.070) | All charter targets met |
-| 5. Sensitivity | Thin-filer gain +0.057 to +0.108 across latent r 0.30 to 0.50 and thin-filer definitions | Gain stays above +0.03 in every case |
+| 1. Recourse: can rejected test applicants reach 495 within 12 months with at most 3 variables? | 87.9% (thin-filers 87.0%) | Feasible for most; 357 of 2,941 cannot |
+| 2. Fairness, gender | DI 0.995; EO gap 0.038 | **Pass** |
+| 2. Fairness, age band (20-34 / 35-54 / 55+) | DI 0.832; **EO gap 0.121** | DI passes; **EO fails the charter target (≤ 0.10). Open item for 채민규** |
+| 3. Stability: approval flips within ±30 points under 3 retrained models | 26.8% | Above 10%; slower learning does not help (26.4%) |
+| 3. Path robustness (charter ≥ 80% of paths still approved) | minimal paths aimed at 495: **90.8%** under all 3 models | **Pass** (paths aimed at 475: 51.9%, would fail) |
+| 4. Sensitivity: thin-filer gain across mission r −0.30 to −0.50 and thin-filer definitions | +0.084 to +0.149 | Always ≥ +0.03; r = −0.50 cannot meet the 0.60 cap |
 
 ## 1. Recourse feasibility
 
-**Setup:** rejected = deployed model score below 475 (21,479 applicants, 14.3%; 28.7% of thin-filers). Variables: the 8 with `dice_vary: true`, moved only in their YAML direction, by their YAML step, within their YAML bounds, and at most `horizon / months_per_step` steps. Every one of the 8 has a monotonic constraint, so the best reachable score for a set of variables is at the corner where each is moved as far as allowed. Checking all 92 sets of 1 to 3 variables at that corner is therefore an exact search.
+**Setup:** rejected = test applicants with a shipped-model score below 475 (2,941 of 22,500, 13.1%; 25.3% of thin-filers). Path variables: the 8 model features with `dice_vary: true` (utilization, debt ratio, income, both payment rates, tenure, insurance months, spending consistency), each moved only in its YAML direction, by its step, within its bounds and the time horizon. Autopay (not a model feature) and the two count variables (NOT_RECOMMENDED) are never used. All 8 are monotonic, so checking every set of 1 to 3 variables at its maximum allowed change is an exact search.
 
-### 1.1 Results
-
-| View | Feasible (all) | Thin-filers | Others | Not feasible |
-|---|---|---|---|---|
-| **Main: 8 variables, 12 months** | **99.95%** | **100%** | 99.94% | 10 |
-| 8 variables, 24 months | 99.95% | 100% | 99.94% | 10 |
-| Without TIME_ONLY (tenure, insurance), 12 months | 98.99% | 99.58% | 98.88% | 217 |
-| Without autopay, 12 months | 99.27% | 99.97% | 99.15% | 156 |
-
-Variables needed (main view): 1 variable for 15,392 applicants (71.7%), 2 for 5,298 (24.7%), 3 for 779 (3.6%). 24 months gives the same result as 12 because most variables reach their bounds within 12 months.
-
-Most common paths (main view; for each applicant, the smallest set with the largest score gain):
-
-| Path | Applicants |
-|---|---|
-| Insurance paid months (wait up to 12 months) | 4,754 |
-| Autopay share (to 100%, about 2.5 months) | 4,318 |
-| Utility bill on-time rate | 3,573 |
-| Phone bill on-time rate | 2,744 |
-| Utility on-time rate + autopay | 1,940 |
-
-### 1.2 What blocks the rest
-
-- **Main view:** the 10 applicants who cannot reach 475 would need 4 or more variables; none is blocked even with all 8. All 10 have at least one 60+ day late payment and a score near 0.
-- **Without TIME_ONLY (217) and without autopay (156):** over 92% of the blocked applicants have a 60+ day late payment, and their median score is about 50, more than 420 points short. Late-payment history is NON_DECREASING, so recourse cannot touch it. That is the real blocker.
-
-### 1.3 Interpretation
-
-Recourse is almost always feasible because the simulated alternative variables are strong (single-variable AUC about 0.73 to 0.76) and can be moved to their limits within months. One variable is enough for 72% of rejected applicants, and only 10 of 21,479 cannot reach the cutoff at all, even though late-payment history cannot be changed. This is a property of the simulation, not evidence that real bill-payment data would work this way.
-
-Two consequences for the presentation and for DiCE:
-- **Autopay was the single easiest path for 4,318 applicants.** It takes about 2.5 months and, as the original notes say, does not lower real risk. **Decided after this audit:** autopay is removed from recourse paths (`dice_vary: false`) and kept as a model feature.
-- **Insurance months is the most common path, but it is TIME_ONLY:** the applicant can only wait. It must be phrased as a duration, never as an action.
-
-### 1.4 Note for 채민규: income and debt ratio
-
-In reality, raising income also lowers the debt ratio, because the ratio is divided by income. The corner search treats every variable as independent: it can raise income without changing the debt ratio, or lower the debt ratio without changing income. DiCE should model this link. When income rises by a factor k, the debt ratio should become (debt ratio / k) unless debt also changes. Otherwise income-only paths will look weaker than they are, and paths combining both can double count.
-
-### 1.5 Limits of this check
-
-- The corner is the maximum allowed change, so feasibility is an upper bound. DiCE will look for the cheapest change and may not find every path the corner finds.
-- Waiting 12 months also ages the applicant. Age is held fixed here (it is IMMUTABLE), and the tenure age cap is not re-applied.
-- "Rejected" uses the deployed model, which was trained on all rows, because that is the model DiCE will query.
-
-### 1.6 Decided setup: no autopay, recourse target 495
-
-Rerun with the current YAML (7 variables, autopay excluded) and `recourse_target_score` = 495 from `config/scoring.yaml`, 12 months, at most 3 variables.
-
-| | All | Thin-filers | Others |
+| View | Reach target | Thin-filers | Not feasible (3-variable limit / even with all 8) |
 |---|---|---|---|
-| Can reach 495 | **98.68%** | **99.82%** | 98.47% |
-| Not feasible | 284 (1.32%) | | |
+| **12 months, target 495 (main)** | **87.9%** | **87.0%** | 357 (238 / 119) |
+| 24 months, target 495 | 91.8% | 91.7% | 240 (229 / 11) |
+| 12 months, target 495, without TIME_ONLY (tenure, insurance) | 75.3% | 72.4% | 726 (161 / 565) |
+| 12 months, target 475 (reference) | 90.0% | 89.7% | 293 (214 / 79) |
 
-- Variables needed: 1 for 13,406 (62.4%), 2 for 6,060 (28.2%), 3 for 1,729 (8.0%). Paths need more variables than before because the target is 20 points higher and autopay is gone.
-- Not feasible: 257 would need 4 or more variables, and 27 cannot reach 495 even with all 7. Of the 284, 97.9% have a 60+ day late payment, and their median score is 65 (430 points short).
-- Most common paths: insurance months (5,850, waiting only), utility on-time rate (4,025), phone on-time rate (3,512), utility on-time rate + insurance months (2,900).
+- Variables needed (main view): 1 for 1,663 applicants, 2 for 700, 3 for 221.
+- Most common paths: `spending_consistency` alone (1,329), insurance months + spending consistency (624), insurance months alone (324).
+- **What blocks the rest:** 83% of the 357 have a 60+ day late payment, which cannot decrease; their median score is 121, 374 points short.
+- **Note for 채민규:** raising income also lowers the debt ratio in reality, while this search moves them independently; DiCE should model that link. TIME_ONLY paths (insurance months) must be phrased as waiting time, not as an action.
 
-## 2. Fairness by age group
+## 2. Fairness (test-set decisions of the shipped model)
 
-Out-of-fold decisions of the current setup (no in-sample scores). 95% intervals use the normal approximation.
+TPR = approval rate among applicants who repaid; FPR = approval rate among those who defaulted. Equalized-odds (EO) gap = the larger of the TPR and FPR differences. Rules: DI in [0.8, 1.25]; EO gap ≤ 0.10.
 
-| Age | Applicants | Default rate | Approval rate (95% CI) | DI ratio | Approval if repaid | Approval if defaulted |
-|---|---|---|---|---|---|---|
-| Under 30 | 8,820 | 11.7% | 73.7% (72.8 to 74.6) | **0.81** | 81.4% | 16.0% |
-| 30 to 49 | 57,560 | 9.1% | 80.4% (80.1 to 80.7) | 0.89 | 86.5% | 19.3% |
-| 50+ | 83,619 | 4.5% | 90.7% (90.5 to 90.9) | 1.00 | 93.7% | 28.3% |
+**Gender (simulated, independent of default):**
 
-- **DI ratio:** the lowest is 0.81 (under 30 vs. 50+), just above the 0.8 rule. Part of the gap reflects a real difference in default rate (11.7% vs. 4.5%).
-- **Equalized-odds gap: 12.3 points, which fails the charter target of 0.10 or less, even though DI passes.** Among applicants who actually repaid, those under 30 are approved 81.4% of the time, against 93.7% for 50+. Among those who defaulted, the gap is 12.3 points the other way: older defaulters are approved more often. So the model treats age groups differently even when the actual outcome is the same.
-- **Why:** age is a model feature, and utilization and dependents carry age information as well (Step 2).
-- **Control check, gender (simulated, independent of default):** DI 0.998, EO gap 0.6 points. This is as expected and confirms the measurement works.
+| Group | n | Default rate | Approval | TPR | FPR |
+|---|---|---|---|---|---|
+| Female | 11,287 | 6.6% | 86.7% | 0.916 | 0.171 |
+| Male | 11,213 | 6.7% | 87.2% | 0.920 | 0.209 |
 
-These numbers go to 채민규's fairness work. No mitigation was applied here. **Status: the EO gap (0.123) does not meet the charter target (≤ 0.10); mitigation is open and owned by 채민규.**
+DI 0.995 (pass); TPR difference 0.003, FPR difference 0.038, EO gap 0.038 (pass).
+
+**Age band (mission bands):**
+
+| Group | n | Default rate | Approval (95% CI) | TPR | FPR |
+|---|---|---|---|---|---|
+| 20 to 34 | 2,970 | 11.8% | 77.4% (75.9 to 78.9) | 0.857 | 0.149 |
+| 35 to 54 | 9,753 | 8.4% | 83.8% (83.0 to 84.5) | 0.898 | 0.175 |
+| 55+ | 9,777 | 3.5% | 93.0% (92.5 to 93.5) | 0.954 | 0.269 |
+
+- DI = 0.832 (20 to 34 vs. 55+): passes the 0.8 rule.
+- **EO: TPR difference 0.096, FPR difference 0.121, so the EO gap is 0.121. This fails the charter target of 0.10 or less.** Among people who repaid, the youngest are approved 85.7% of the time vs. 95.4% for 55+; among defaulters, older applicants are approved more often (26.9% vs. 14.9%).
+- **Status: fail, open item for 채민규's mitigation work** (for example reweighting or group thresholds, tuned on validation and reported on test). Nothing in the data, simulator or model was tuned to pass it.
 
 ## 3. Stability
 
-**Seeds alone do nothing:** the model uses no row or column sampling, so two models with different `random_state` give identical predictions (max PD difference 0.0). Stability was therefore measured by training the final setup on 3 different random 80% subsamples (seeds 11, 22, 33) of the holdout training set and scoring the same 30,000 holdout applicants.
+The model uses no row or column sampling, so changing only `random_state` changes nothing (max PD difference 0.0). Stability was measured by retraining on 3 random 80% subsamples of train + validation and scoring the test set.
 
-| Variant | Applicants within ±30 points | Flip share near cutoff | Flip share overall | Holdout AUC (3 models) |
+| Variant | Test rows within ±30 points | Flip share near cutoff | Flip share overall | Test AUC (3 models) |
 |---|---|---|---|---|
-| 300 trees, lr 0.05 (current) | 2,345 (7.8%) | **27.9%** | 2.2% | 0.926, 0.926, 0.926 |
-| 1000 trees, lr 0.02 | 2,345 (7.8%) | 29.0% | 2.4% | 0.926, 0.926, 0.926 |
+| 300 trees, lr 0.05 (shipped) | 1,413 (6.3%) | **26.8%** | 1.7% | 0.949, 0.949, 0.949 |
+| 1000 trees, lr 0.02 | 1,413 (6.3%) | 26.4% | 1.7% | 0.949, 0.949, 0.948 |
 
-- The flip share near the cutoff is above the 10% limit. Slower learning does not reduce it, so the cause is the training data sample, not the training settings. AUC barely moves, so ranking is stable while individual decisions near the line are not.
-- The ±30-point band is wide: 30 points is a 1.5x change in odds. Inside it, small score shifts of a few points are enough to cross 475.
+Ranking is stable (AUC unchanged), but decisions close to 475 are not, and slower learning does not fix it. A grey zone around 475 is an open team item.
 
-### 3.1 Path robustness (charter: at least 80% of paths stay approved)
+**Path robustness** (paths from section 1, scored by the 3 retrained models; "still approved" = score ≥ 475):
 
-The recourse paths from check 1 (main view) were applied and scored by the 3 retrained models.
-
-| Path type | Still approved (average per model) | Approved by all 3 | Thin-filers, all 3 |
+| Paths | Approved, per model | All 3 models | Thin-filers, all 3 |
 |---|---|---|---|
-| Maximum change (corner) | 95.5% | 92.2% | 91.3% |
-| Minimal change (just reaches 475) | 77.3% | **59.7%** | 63.8% |
-| **Decided: maximum change, target 495** | 98.7% | 97.1% | 95.9% |
-| **Decided: minimal change, target 495** | **96.0%** | **90.6%** | **88.3%** |
+| **Minimal, target 495** | 96.7%, 95.5%, 97.3% | **90.8%** | 85.8% |
+| Maximum change, target 495 | 99.0%, 97.1%, 99.4% | 95.9% | 91.8% |
+| Minimal, target 475 (reference) | 73.9%, 72.9%, 77.0% | 51.9% | 49.5% |
 
-"Still approved" always means a score of 475 or more under the retrained model. Original minimal paths fail, because they end just above the cutoff (median deployed score 490 after rounding up to whole steps). Minimal paths aimed at 495 (median deployed score 509) pass with 90.6% under all 3 models, which confirms the estimate below (91.1%). With 1000 trees at lr 0.02 the decided minimal paths give 89.1%, so the result does not depend on the training settings.
+The 495 target meets the charter's 80% robustness target; paths aimed only at 475 would not.
 
-Estimate made before the decision, from the original minimal paths:
+## 4. Sensitivity (5-fold CV inside train, final setup)
 
-| Extra margin above the minimal path | Average per model | All 3 models |
-|---|---|---|
-| +0 | 77.3% | 59.7% |
-| +10 | 90.0% | 79.6% |
-| **+20** | **96.0%** | **91.1%** |
-| +30 | 98.5% | 96.4% |
+**Mission variables' observed r with default** (all 5 set to the same value):
 
-(Estimate: assumes a path aimed 20 points higher is affected by retraining in the same way.)
+| Observed r | Within the 0.60 pair cap | Largest pair r | CV AUC | Thin-filer gain |
+|---|---|---|---|---|
+| −0.30 | yes | 0.591 | 0.936 | +0.086 ± 0.010 |
+| **−0.32 (current)** | yes | 0.591 | 0.943 | **+0.094 ± 0.008** |
+| −0.40 | yes | 0.594 | 0.971 | +0.124 ± 0.006 |
+| −0.50 | **no** | 0.816 (lowest reachable) | 0.995 | +0.149 ± 0.004 |
 
-**Decided after this audit:** `recourse_target_score: 495` in `config/scoring.yaml`; approval stays at 475. Verified above: 90.6%.
+At −0.50 the variables are so strongly tied to default that even without a shared factor two of them correlate 0.82, so the 0.60 cap cannot hold; the row shows the result with the cap lifted. Across the mission's 0.3 to 0.5 range the gain nearly doubles, so its size is set by this choice.
 
-## 4. Holdout
-
-A stratified 20% (30,000 rows, seed 2026) was set aside, and the **whole selection was rerun on the other 80%**: the 27-run grid, the constraint stage and the winner rule. It picked **the same winner** (XGBoost, both feature sets, no resampling, all 11 constraints). That model was evaluated once on the holdout. 95% intervals: 500 bootstrap resamples.
-
-| Metric | Holdout | 95% CI | 5-fold CV (Step 5) |
-|---|---|---|---|
-| AUC | 0.927 | 0.921 to 0.932 | 0.927 |
-| KS | 0.703 | 0.688 to 0.718 | 0.704 |
-| Thin-filer AUC | 0.919 | | 0.917 |
-| Thin-filer AUC, GMSC only | 0.864 | | 0.847 |
-| **Thin-filer AUC gain** | **+0.055** | **+0.039 to +0.070** | +0.071 |
-| PSI (80% train scores vs. holdout) | 0.0005 | | 0.0005 |
-| Brier | 0.040 | | 0.039 |
-| Mean predicted PD / actual default rate | 6.71% / 6.68% | | |
-| Approval rate (all / thin-filers) | 85.6% / 73.4% | | 85.8% / 71.5% |
-
-Grades on the holdout: the actual default rate per grade is close to the predicted PD (A 0.5% vs. 0.6%, B 3.1% vs. 3.2%, C 7.7% vs. 7.2%, D 14.4% vs. 14.0%, E 49.3% vs. 49.4%).
-
-The thin-filer gain is lower on the holdout (+0.055) than in CV (+0.071), mainly because the GMSC-only model happens to do better on these thin-filers (0.864 vs. 0.847). The whole interval stays above +0.03. One overlap remains: the simulator calibrated its hidden scores on all rows, including the holdout. The simulation is built from the outcome anyway (see the simulator report), so this does not change the bias picture.
-
-## 5. Sensitivity
-
-Final setup, 5-fold paired CV, gain = thin-filer AUC with alternative data minus GMSC only.
-
-**Latent correlation target (all 5 variables):**
-
-| Latent r | Observed Pearson r | AUC | Thin-filer gain |
-|---|---|---|---|
-| 0.30 | -0.16 to -0.25 | 0.913 | +0.057 ± 0.008 |
-| 0.35 (current) | -0.18 to -0.27 | 0.927 | +0.071 ± 0.008 |
-| 0.50 | -0.22 to -0.36 | 0.960 | +0.108 ± 0.011 |
-
-**Thin-filer definition (credit lines, with 0 real estate loans):**
+**Thin-filer definition** (open credit lines, with 0 real estate loans):
 
 | Definition | Share | Default rate | Thin-filer AUC | Gain |
 |---|---|---|---|---|
-| ≤ 1 line | 4.1% | 16.6% | 0.897 | +0.091 ± 0.012 |
-| ≤ 2 lines (current) | 7.7% | 12.9% | 0.917 | +0.071 ± 0.008 |
-| ≤ 3 lines | 11.8% | 11.2% | 0.923 | +0.062 ± 0.006 |
+| ≤ 1 line | 4.0% | 16.9% | 0.924 | +0.121 ± 0.013 |
+| **≤ 2 lines (current)** | 7.7% | 13.1% | 0.939 | **+0.094 ± 0.008** |
+| ≤ 3 lines | 11.7% | 11.2% | 0.943 | +0.084 ± 0.011 |
 
-The gain clears +0.03 in every case. It grows with the latent correlation, as expected, and it is largest for the thinnest files, which have the least credit history for the GMSC-only model to use. Within the charter range (0.30 to 0.50) the gain roughly doubles, so the size of the gain is mostly a consequence of the chosen setting.
+## 5. Open items
 
-## 6. Decisions and open items
-
-**Decided after review (applied in a separate config commit):**
-1. Autopay removed from recourse paths (`dice_vary: false`), kept as a model feature. Its notes in `actionability.yaml` and the Excel files explain why.
-2. `recourse_target_score: 495` added to `config/scoring.yaml`, separate from the approval cutoff of 475.
-
-**Handed to 채민규:**
-3. **Age fairness:** the EO gap of 12.3 points fails the charter target (≤ 0.10) even though DI (0.81) passes.
-4. **Income and debt ratio link** in DiCE (section 1.4).
-
-**Open team items:**
-5. **Grey zone around 475:** decisions within ±30 points flip in 27.9% of cases when the model is retrained, and slower learning does not help. A grey zone for manual review, or averaging several models, was not adopted for now.
-6. **Autopay's class (resolved):** reclassified from ACTIONABLE to NOT_RECOMMENDED, so the class rule ("fixed in DiCE") matches `dice_vary: false`. Monotone stays -1 and it remains a model feature, so the final model is unchanged.
+1. **Age-band EO gap 0.121 > 0.10 (fail):** 채민규's mitigation.
+2. **Grey zone around 475** (26.8% of near-cutoff decisions flip on retraining): team decision.
+3. **Income and debt-ratio link in DiCE:** 채민규.
+4. **TIME_ONLY paths** are phrased as waiting time; the NOT_RECOMMENDED variables appear only as "reference (not changeable)" in rejection reasons.

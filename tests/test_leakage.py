@@ -82,8 +82,11 @@ def test_folds_disjoint_complete_and_stratified():
     df = pd.DataFrame({CFG["target"]: (rng.random(2000) < 0.07).astype(int),
                        CFG["thin_col"]: (rng.random(2000) < 0.08).astype(int)})
     folds = make_folds(df, CFG)
-    held = np.concatenate([te for _, te in folds])
-    assert sorted(held) == list(range(len(df)))              # every row held out exactly once
+    k, repeats = CFG["n_splits"], CFG.get("cv_repeats", 1)
+    assert len(folds) == k * repeats
+    for r in range(repeats):                                 # every row held out exactly once per repeat
+        held = np.concatenate([te for _, te in folds[r * k:(r + 1) * k]])
+        assert sorted(held) == list(range(len(df)))
     for tr, te in folds:
         assert not set(tr) & set(te)
         assert abs(df.iloc[te][CFG["target"]].mean() - df[CFG["target"]].mean()) < 0.01

@@ -2,229 +2,203 @@
   {
     "b": 0.0,
     "noise": {
-      "telecom_ontime_rate": 1.0,
-      "utility_ontime_rate": 1.0,
+      "telecom_payment_rate": 1.0,
+      "utility_payment_rate": 1.0,
       "telecom_tenure_months": 1.0,
       "insurance_paid_months": 1.0,
-      "autopay_ratio": 1.0
+      "autopay_ratio": 1.0,
+      "spending_consistency": 1.0,
+      "regular_payment_count": 1.0,
+      "app_login_frequency": 1.0
     },
     "corr_target_latent": {
-      "telecom_ontime_rate": -0.3496,
-      "utility_ontime_rate": -0.3495,
+      "telecom_payment_rate": -0.575,
+      "utility_payment_rate": -0.5612,
       "telecom_tenure_months": -0.35,
       "insurance_paid_months": -0.3497,
-      "autopay_ratio": -0.3501
+      "autopay_ratio": -0.3501,
+      "spending_consistency": -0.5783,
+      "regular_payment_count": -0.6059,
+      "app_login_frequency": -0.5931
     },
     "corr_target": {
-      "telecom_ontime_rate": -0.1876,
-      "utility_ontime_rate": -0.185,
+      "telecom_payment_rate": -0.325,
+      "utility_payment_rate": -0.316,
       "telecom_tenure_months": -0.1526,
       "insurance_paid_months": -0.1841,
-      "autopay_ratio": -0.1711
+      "autopay_ratio": -0.1711,
+      "spending_consistency": -0.3208,
+      "regular_payment_count": -0.3185,
+      "app_login_frequency": -0.3161
     },
     "auc_single": {
-      "telecom_ontime_rate": 0.6931,
-      "utility_ontime_rate": 0.6913,
+      "telecom_payment_rate": 0.8129,
+      "utility_payment_rate": 0.8053,
       "telecom_tenure_months": 0.7035,
       "insurance_paid_months": 0.6996,
-      "autopay_ratio": 0.695
+      "autopay_ratio": 0.695,
+      "spending_consistency": 0.8251,
+      "regular_payment_count": 0.831,
+      "app_login_frequency": 0.8314
     },
     "auc_base": {
       "mean": 0.8646,
       "std": 0.0072
     },
     "auc_full": {
-      "mean": 0.9323,
-      "std": 0.0033
+      "mean": 0.955,
+      "std": 0.0035
     },
     "lift": {
-      "mean": 0.0676,
-      "std": 0.0043
+      "mean": 0.0904,
+      "std": 0.0039
     },
     "thin_auc_base": {
       "mean": 0.8503,
       "std": 0.0139
     },
     "thin_auc_full": {
-      "mean": 0.9249,
-      "std": 0.0066
+      "mean": 0.9516,
+      "std": 0.0035
     },
     "thin_lift": {
-      "mean": 0.0746,
-      "std": 0.0101
+      "mean": 0.1013,
+      "std": 0.0145
     },
     "per_fold_thin_lift": [
-      0.0605,
-      0.0696,
-      0.0762,
-      0.0868,
-      0.0799
+      0.092,
+      0.0878,
+      0.0935,
+      0.1212,
+      0.112
     ]
   },
   {
     "b": 0.15,
     "noise": {
-      "telecom_ontime_rate": 1.0,
-      "utility_ontime_rate": 1.0,
+      "telecom_payment_rate": 1.0,
+      "utility_payment_rate": 1.0,
       "telecom_tenure_months": 1.0,
       "insurance_paid_months": 1.0,
-      "autopay_ratio": 1.0
+      "autopay_ratio": 1.0,
+      "spending_consistency": 1.0,
+      "regular_payment_count": 1.0,
+      "app_login_frequency": 1.0
     },
     "corr_target_latent": {
-      "telecom_ontime_rate": -0.3499,
-      "utility_ontime_rate": -0.3498,
+      "telecom_payment_rate": -0.516,
+      "utility_payment_rate": -0.5098,
       "telecom_tenure_months": -0.3509,
       "insurance_paid_months": -0.3507,
-      "autopay_ratio": -0.3491
+      "autopay_ratio": -0.3491,
+      "spending_consistency": -0.5595,
+      "regular_payment_count": -0.5879,
+      "app_login_frequency": -0.5748
     },
     "corr_target": {
-      "telecom_ontime_rate": -0.2317,
-      "utility_ontime_rate": -0.2307,
+      "telecom_payment_rate": -0.3199,
+      "utility_payment_rate": -0.316,
       "telecom_tenure_months": -0.1653,
       "insurance_paid_months": -0.2043,
-      "autopay_ratio": -0.1862
+      "autopay_ratio": -0.1862,
+      "spending_consistency": -0.3239,
+      "regular_payment_count": -0.3208,
+      "app_login_frequency": -0.319
     },
     "auc_single": {
-      "telecom_ontime_rate": 0.7308,
-      "utility_ontime_rate": 0.7295,
+      "telecom_payment_rate": 0.8058,
+      "utility_payment_rate": 0.8027,
       "telecom_tenure_months": 0.7234,
       "insurance_paid_months": 0.7191,
-      "autopay_ratio": 0.7122
+      "autopay_ratio": 0.7122,
+      "spending_consistency": 0.8268,
+      "regular_payment_count": 0.8324,
+      "app_login_frequency": 0.8331
     },
     "auc_base": {
       "mean": 0.8646,
       "std": 0.0072
     },
     "auc_full": {
-      "mean": 0.9284,
+      "mean": 0.9489,
       "std": 0.0036
     },
     "lift": {
-      "mean": 0.0637,
-      "std": 0.0044
+      "mean": 0.0843,
+      "std": 0.0037
     },
     "thin_auc_base": {
       "mean": 0.8503,
       "std": 0.0139
     },
     "thin_auc_full": {
-      "mean": 0.9215,
-      "std": 0.0064
+      "mean": 0.9451,
+      "std": 0.0037
     },
     "thin_lift": {
-      "mean": 0.0712,
-      "std": 0.0085
+      "mean": 0.0947,
+      "std": 0.0136
     },
     "per_fold_thin_lift": [
-      0.0602,
-      0.0671,
-      0.07,
-      0.0824,
-      0.0763
+      0.085,
+      0.0854,
+      0.0854,
+      0.1147,
+      0.1031
     ]
   },
   {
     "b": 0.3,
     "noise": {
-      "telecom_ontime_rate": 1.0,
-      "utility_ontime_rate": 1.0,
+      "telecom_payment_rate": 1.0,
+      "utility_payment_rate": 1.0,
       "telecom_tenure_months": 1.0,
       "insurance_paid_months": 1.0,
-      "autopay_ratio": 1.0
+      "autopay_ratio": 1.0,
+      "spending_consistency": 1.0,
+      "regular_payment_count": 1.0,
+      "app_login_frequency": 1.0
     },
     "corr_target_latent": {
-      "telecom_ontime_rate": -0.3498,
-      "utility_ontime_rate": -0.3496,
+      "telecom_payment_rate": -0.4714,
+      "utility_payment_rate": -0.4646,
       "telecom_tenure_months": -0.3502,
       "insurance_paid_months": -0.35,
-      "autopay_ratio": -0.3504
+      "autopay_ratio": -0.3504,
+      "spending_consistency": -0.5251,
+      "regular_payment_count": -0.5554,
+      "app_login_frequency": -0.5587
     },
     "corr_target": {
-      "telecom_ontime_rate": -0.273,
-      "utility_ontime_rate": -0.2726,
+      "telecom_payment_rate": -0.3234,
+      "utility_payment_rate": -0.3195,
       "telecom_tenure_months": -0.1764,
       "insurance_paid_months": -0.2233,
-      "autopay_ratio": -0.2025
+      "autopay_ratio": -0.2025,
+      "spending_consistency": -0.318,
+      "regular_payment_count": -0.3163,
+      "app_login_frequency": -0.3225
     },
     "auc_single": {
-      "telecom_ontime_rate": 0.7632,
-      "utility_ontime_rate": 0.7623,
+      "telecom_payment_rate": 0.8057,
+      "utility_payment_rate": 0.8023,
       "telecom_tenure_months": 0.7415,
       "insurance_paid_months": 0.7369,
-      "autopay_ratio": 0.7308
+      "autopay_ratio": 0.7308,
+      "spending_consistency": 0.8207,
+      "regular_payment_count": 0.8275,
+      "app_login_frequency": 0.8353
     },
     "auc_base": {
       "mean": 0.8646,
       "std": 0.0072
     },
     "auc_full": {
-      "mean": 0.9257,
-      "std": 0.0036
+      "mean": 0.9429,
+      "std": 0.0033
     },
     "lift": {
-      "mean": 0.0611,
-      "std": 0.0046
-    },
-    "thin_auc_base": {
-      "mean": 0.8503,
-      "std": 0.0139
-    },
-    "thin_auc_full": {
-      "mean": 0.9177,
-      "std": 0.0064
-    },
-    "thin_lift": {
-      "mean": 0.0673,
-      "std": 0.0079
-    },
-    "per_fold_thin_lift": [
-      0.0596,
-      0.0601,
-      0.0662,
-      0.0773,
-      0.0734
-    ]
-  },
-  {
-    "b": 0.45,
-    "noise": {
-      "telecom_ontime_rate": 1.0,
-      "utility_ontime_rate": 1.0,
-      "telecom_tenure_months": 1.0,
-      "insurance_paid_months": 1.0,
-      "autopay_ratio": 1.0
-    },
-    "corr_target_latent": {
-      "telecom_ontime_rate": -0.3499,
-      "utility_ontime_rate": -0.3497,
-      "telecom_tenure_months": -0.3499,
-      "insurance_paid_months": -0.3497,
-      "autopay_ratio": -0.3501
-    },
-    "corr_target": {
-      "telecom_ontime_rate": -0.3105,
-      "utility_ontime_rate": -0.3099,
-      "telecom_tenure_months": -0.1869,
-      "insurance_paid_months": -0.2411,
-      "autopay_ratio": -0.2159
-    },
-    "auc_single": {
-      "telecom_ontime_rate": 0.7908,
-      "utility_ontime_rate": 0.7895,
-      "telecom_tenure_months": 0.7586,
-      "insurance_paid_months": 0.7535,
-      "autopay_ratio": 0.7461
-    },
-    "auc_base": {
-      "mean": 0.8646,
-      "std": 0.0072
-    },
-    "auc_full": {
-      "mean": 0.9241,
-      "std": 0.0036
-    },
-    "lift": {
-      "mean": 0.0595,
+      "mean": 0.0782,
       "std": 0.004
     },
     "thin_auc_base": {
@@ -232,19 +206,93 @@
       "std": 0.0139
     },
     "thin_auc_full": {
-      "mean": 0.9148,
-      "std": 0.0072
+      "mean": 0.9385,
+      "std": 0.0038
     },
     "thin_lift": {
-      "mean": 0.0645,
-      "std": 0.0073
+      "mean": 0.0882,
+      "std": 0.0136
     },
     "per_fold_thin_lift": [
-      0.0575,
-      0.0581,
-      0.0635,
-      0.0748,
-      0.0685
+      0.0805,
+      0.0743,
+      0.0813,
+      0.1063,
+      0.0986
+    ]
+  },
+  {
+    "b": 0.45,
+    "noise": {
+      "telecom_payment_rate": 1.0,
+      "utility_payment_rate": 1.0,
+      "telecom_tenure_months": 1.0,
+      "insurance_paid_months": 1.0,
+      "autopay_ratio": 1.0,
+      "spending_consistency": 1.0,
+      "regular_payment_count": 1.0,
+      "app_login_frequency": 1.0
+    },
+    "corr_target_latent": {
+      "telecom_payment_rate": -0.4082,
+      "utility_payment_rate": -0.4113,
+      "telecom_tenure_months": -0.3499,
+      "insurance_paid_months": -0.3497,
+      "autopay_ratio": -0.3501,
+      "spending_consistency": -0.5033,
+      "regular_payment_count": -0.5341,
+      "app_login_frequency": -0.5375
+    },
+    "corr_target": {
+      "telecom_payment_rate": -0.3152,
+      "utility_payment_rate": -0.3161,
+      "telecom_tenure_months": -0.1869,
+      "insurance_paid_months": -0.2411,
+      "autopay_ratio": -0.2159,
+      "spending_consistency": -0.3189,
+      "regular_payment_count": -0.317,
+      "app_login_frequency": -0.3235
+    },
+    "auc_single": {
+      "telecom_payment_rate": 0.797,
+      "utility_payment_rate": 0.797,
+      "telecom_tenure_months": 0.7586,
+      "insurance_paid_months": 0.7535,
+      "autopay_ratio": 0.7461,
+      "spending_consistency": 0.8205,
+      "regular_payment_count": 0.8272,
+      "app_login_frequency": 0.8353
+    },
+    "auc_base": {
+      "mean": 0.8646,
+      "std": 0.0072
+    },
+    "auc_full": {
+      "mean": 0.9381,
+      "std": 0.0039
+    },
+    "lift": {
+      "mean": 0.0734,
+      "std": 0.0035
+    },
+    "thin_auc_base": {
+      "mean": 0.8503,
+      "std": 0.0139
+    },
+    "thin_auc_full": {
+      "mean": 0.9334,
+      "std": 0.0049
+    },
+    "thin_lift": {
+      "mean": 0.083,
+      "std": 0.0142
+    },
+    "per_fold_thin_lift": [
+      0.0771,
+      0.0683,
+      0.0742,
+      0.1021,
+      0.0935
     ]
   }
 ]

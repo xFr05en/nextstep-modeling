@@ -38,10 +38,10 @@
     "test": 22500
   },
   "cv_on_train": {
-    "auc_mean": 0.9423,
-    "auc_std": 0.0021,
-    "ks_mean": 0.7354,
-    "thin_auc_mean": 0.9383
+    "auc_mean": 0.9425,
+    "auc_std": 0.0025,
+    "ks_mean": 0.7349,
+    "thin_auc_mean": 0.9386
   },
   "test": {
     "auc": 0.9492,
@@ -119,5 +119,5 @@
     "xgboost.sklearn.XGBClassifier"
   ],
   "mlflow_run_name": "xgb__both__none__mono-full__final",
-  "mlflow_run_id": "c0445ced3f124eb3aa8cbd34f931d569"
+  "mlflow_run_id": "8748ee1f6a264ac5904435379a52614e"
 }

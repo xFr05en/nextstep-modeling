@@ -5,7 +5,7 @@ seed: 42
 # threshold or fairness tuning). test: touched once, by the shipped model (fit on train+validation).
 split: {train: 0.70, validation: 0.15, test: 0.15, seed: 42}
 n_splits: 5                 # CV inside train, stratified on target x thin_filer; same folds for every run
-cv_repeats: 1               # >1 repeats the folds with new shuffles (more ANOVA replicates); off by default
+cv_repeats: 3               # 3 x 5-fold: 15 replicates per ANOVA cell (power for the two-way bonus test)
 data: data/processed/gmsc_sim.csv
 target: SeriousDlqin2yrs
 thin_col: thin_filer

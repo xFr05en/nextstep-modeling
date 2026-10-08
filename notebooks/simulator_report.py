@@ -48,8 +48,8 @@ TXT = {
         "sweep_y": "AUC gain (with minus without alternative data)",
         "thin": "Thin-filers", "overall": "All borrowers", "goal": "Goal +0.03 (thin-filers)",
         "main": "main dataset",
-        "sweep_note": "Error bars: plus or minus 1 SD across 5 CV folds. LightGBM default settings. Latent r with default fixed at 0.35 in every setting.",
-        "corr_title": "Pearson r of simulated variables (main dataset, b = 0.30)",
+        "sweep_note": "Error bars: plus or minus 1 SD across 5 CV folds. LightGBM default settings. Mission variables at observed r -0.32, extras at latent 0.35, in every setting.",
+        "corr_title": "Pearson r of the 8 simulated variables (main dataset, b = 0.30)",
         "default": "Default", "credit": "Credit score", "pastdue": "Past-due total",
         "util": "Utilization", "age": "Age",
         "dist_title": "Simulated variables by default status (main dataset)",
@@ -61,8 +61,8 @@ TXT = {
         "sweep_y": "AUC 향상 (대체 데이터 포함 - 미포함)",
         "thin": "씬파일러", "overall": "전체 대출자", "goal": "목표 +0.03 (씬파일러)",
         "main": "주 데이터셋",
-        "sweep_note": "오차 막대: 5개 CV 폴드의 표준편차 1배. LightGBM 기본 설정. 모든 설정에서 부도와의 잠재 상관은 0.35로 고정.",
-        "corr_title": "시뮬레이션 변수의 Pearson r (주 데이터셋, b = 0.30)",
+        "sweep_note": "오차 막대: 5개 CV 폴드의 표준편차 1배. LightGBM 기본 설정. 모든 설정에서 미션 변수는 관측 r -0.32, 추가 변수는 잠재 0.35.",
+        "corr_title": "시뮬레이션 변수 8개의 Pearson r (주 데이터셋, b = 0.30)",
         "default": "부도", "credit": "신용 점수", "pastdue": "연체 횟수 합계",
         "util": "리볼빙 사용률", "age": "연령",
         "dist_title": "부도 여부별 시뮬레이션 변수 분포 (주 데이터셋)",
@@ -99,8 +99,9 @@ def fig_sweep(results, main_b, lang):
         for xi, yi, si in zip(b, m, s_):
             ax.annotate(f"{yi:+.3f}", (xi, yi + side * si), xytext=(0, 5 * side), textcoords="offset points",
                         ha="center", va="bottom" if side > 0 else "top", fontsize=8, color=INK_2)
-    ax.set_ylim(0, 0.1)
-    ax.text(main_b, 0.098, T["main"], ha="center", va="top", fontsize=8, color=INK_2)
+    top = max(r[k]["mean"] + r[k]["std"] for r in results for k in ("thin_lift", "lift")) + 0.02
+    ax.set_ylim(0, top)
+    ax.text(main_b, top * 0.98, T["main"], ha="center", va="top", fontsize=8, color=INK_2)
     ax.set_xticks(b)
     ax.set_xlabel(T["sweep_x"]); ax.set_ylabel(T["sweep_y"])
     ax.legend(loc="lower right")
@@ -148,7 +149,8 @@ def fig_corr(sim, cfg, target, lang):
 def fig_dist(sim, cfg, target, lang):
     T, A, S = TXT[lang], ALT_SHORT[lang], TEXT[lang]
     names = list(cfg["variables"])
-    fig, axes = plt.subplots(1, 5, figsize=(17, 3.4))
+    fig, axes = plt.subplots(2, 4, figsize=(17, 6.6))
+    axes = axes.ravel()
     for ax, n in zip(axes, names):
         x = sim[n]
         vals = np.sort(x.unique())
@@ -165,6 +167,7 @@ def fig_dist(sim, cfg, target, lang):
                         histtype="step", lw=2, color=color, label=label)
         ax.set_title(A[n], loc="left")
     axes[0].set_ylabel(T["share"])
+    axes[4].set_ylabel(T["share"])
     axes[0].legend(loc="upper left")
     fig.suptitle(T["dist_title"], x=0.01, ha="left", fontsize=12)
     fig.tight_layout()
@@ -178,8 +181,12 @@ def main() -> None:
     df = add_thin_filer_flag(pd.read_csv(ROOT / data_cfg["processed_path"]), cfg["thin_filer"]["rule"])
     feats = feature_sets()
 
-    results = run_sweep(df, cfg, target, feats)
-    (ROOT / "reports" / "simulator_sweep.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+    sweep_path = ROOT / "reports" / "simulator_sweep.json"
+    if "--figures-only" in sys.argv:          # redraw from the saved sweep, skip the 4 simulations
+        results = json.loads(sweep_path.read_text())
+    else:
+        results = run_sweep(df, cfg, target, feats)
+        sweep_path.write_text(json.dumps(results, indent=2), encoding="utf-8")
 
     sim, _ = simulate(df, cfg, target=target)
     for lang in ("ko", "en"):
