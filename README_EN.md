@@ -92,7 +92,7 @@ These numbers are optimistic because the alternative data is simulated from the 
 | `src/` | `data.py`, `simulator.py`, `features.py`, `train.py`, `evaluate.py`, `scoring.py`, `actionability_table.py` |
 | `notebooks/` | Report and figure scripts (nothing in `src/` depends on them) |
 | `tests/` | pytest suite |
-| `models/` | `final_model.joblib` |
+| `models/` | `xgboost_v1.0.joblib` (versioned: `{algorithm}_v{model_version}.joblib`, version in `config/train.yaml`) |
 | `reports/` | Step reports (Korean and English), figures, result tables, actionability Excel |
 | `mlruns/` | MLflow tracking (SQLite, not committed; rebuilt by `src.train`) |
 
@@ -117,7 +117,7 @@ Every report also has a Korean version (`_ko`).
 - `config/actionability.yaml`: which variables DiCE may vary (`dice_vary`), direction, step, bounds, difficulty, months per step. The Excel files show the same content.
 - Recourse target: `recourse_target_score` = 495 in `config/scoring.yaml`. Approval itself stays at grades A to C (score 475 or higher); the 20-point margin keeps paths approved when the model is retrained (see `reports/audit_report_en.md`). Use `src/scoring.py` to map PD to score, grade and approval.
 - Autopay is a model feature but is not used in paths: class NOT_RECOMMENDED, `dice_vary: false`, monotone -1. In SHAP rejection reasons, list autopay under "reference (not changeable)", not under actionable reasons, so the explanation never suggests setting up autopay.
-- Model: `models/final_model.joblib`, a pipeline that takes the 19 input columns as a DataFrame. `predict_proba[:, 1]` is the PD.
+- Model: `models/xgboost_v1.0.joblib`, a pipeline that takes the 21 input columns as a DataFrame. `predict_proba[:, 1]` is the PD.
 - Fairness inputs: `gender_female` (simulated, protected, not a model feature) and `age` (protected, used as a feature). Age correlates with utilization and dependents (see the EDA and simulator reports).
 - Real-gender check: `reports/german/oof_predictions.csv` has out-of-fold PD (XGBoost and LR), actual outcome, sex, age, personal status and foreign worker for the 1,000 German Credit applicants. No cutoff is applied; note the UCI cost matrix (break-even PD about 0.167) in `reports/german_report_en.md`.
 

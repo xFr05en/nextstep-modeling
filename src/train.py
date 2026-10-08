@@ -174,28 +174,52 @@ def summarize(per_fold: pd.DataFrame) -> dict:
 
 # ---- MLflow ----
 
+def resolve_tracking_uri(cfg: dict) -> tuple[str, Path | None]:
+    """MLFLOW_TRACKING_URI if it is a URI (http://, sqlite://, ...); otherwise a local folder
+    (the env value or cfg tracking_dir, relative to the project root) holding a SQLite db.
+    Returns (uri, local_dir or None for a remote server)."""
+    env = os.environ.get("MLFLOW_TRACKING_URI", "").strip()
+    if "://" in env:
+        return env, None
+    d = Path(env) if env else Path(cfg["mlflow"]["tracking_dir"])
+    d = d if d.is_absolute() else ROOT / d
+    return f"sqlite:///{d / 'mlflow.db'}", d
+
+
 def setup_mlflow(cfg: dict) -> None:
-    d = ROOT / cfg["mlflow"]["tracking_dir"]
-    d.mkdir(exist_ok=True)
-    mlflow.set_tracking_uri(f"sqlite:///{d / 'mlflow.db'}")
+    uri, local = resolve_tracking_uri(cfg)
+    if local is not None:
+        local.mkdir(parents=True, exist_ok=True)
+    mlflow.set_tracking_uri(uri)
+    cfg["_mlflow_local_dir"] = local
 
 
-def use_experiment(cfg: dict, stage: str) -> None:
-    name = cfg["mlflow"]["experiments"][stage]
+def use_experiment(cfg: dict, key: str) -> None:
+    """key: algorithm short name (lr / lgbm / xgb), 'final' or 'audit'."""
+    name = cfg["mlflow"]["experiments"][key]
     if mlflow.get_experiment_by_name(name) is None:
-        art = ROOT / cfg["mlflow"]["tracking_dir"] / "artifacts" / name
-        mlflow.create_experiment(name, artifact_location=art.as_uri())
+        local = cfg.get("_mlflow_local_dir")
+        # Local store: artifacts next to the db. Remote server: the server decides the location.
+        art = (local / "artifacts" / name).as_uri() if local is not None else None
+        mlflow.create_experiment(name, artifact_location=art)
     mlflow.set_experiment(name)
+
+
+def model_path(cfg: dict, model: str) -> Path:
+    """Versioned model file, e.g. models/xgboost_v1.0.joblib."""
+    rel = cfg["outputs"]["model"].format(full_name=cfg["model_full_names"][model], version=cfg["model_version"])
+    return ROOT / rel
 
 
 def data_md5(cfg: dict) -> str:
     return hashlib.md5((ROOT / cfg["data"]).read_bytes()).hexdigest()[:8]
 
 
-def log_run(cfg, stage, run_name, params, per_fold, extra_metrics, features, monotone=None):
-    use_experiment(cfg, stage)
+def log_run(cfg, stage, run_name, params, per_fold, extra_metrics, features, monotone=None) -> str:
+    """One CV run in its algorithm's experiment. Returns the MLflow run id."""
+    use_experiment(cfg, params["model"])
     sim_b = load_yaml("simulator.yaml")["credit_link"]["b"]
-    with mlflow.start_run(run_name=run_name):
+    with mlflow.start_run(run_name=run_name) as run:
         mlflow.set_tags({"step": "5", "stage": stage, "owner": "wonbin"})
         mlflow.log_params({**params, "seed": cfg["seed"], "n_splits": cfg["n_splits"],
                            "sim_b": sim_b, "data_md5": data_md5(cfg),
@@ -208,6 +232,7 @@ def log_run(cfg, stage, run_name, params, per_fold, extra_metrics, features, mon
         mlflow.log_dict({"features": features}, "features.json")
         if monotone is not None:
             mlflow.log_dict(dict(zip(features, monotone)), "monotone.json")
+    return run.info.run_id
 
 
 # ---- Stages ----
@@ -234,15 +259,32 @@ def stage_compare(df, folds, cfg, fs) -> pd.DataFrame:
                     extra = {f"{ev.KEY_THIN_GAIN}_mean": float(gain.mean()),
                              f"{ev.KEY_THIN_GAIN}_std": float(gain.std())}
                 run = f"{name}__{s}__{res}"
-                log_run(cfg, "compare", run, {"model": name, "feature_set": s, "resampling": res,
-                                              "monotone_set": "none"}, per_fold, extra, fs[s])
-                rows.append({"run_name": run, "model": name, "features": s, "resampling": res,
+                run_id = log_run(cfg, "compare", run, {"model": name, "feature_set": s, "resampling": res,
+                                                       "monotone_set": "none"}, per_fold, extra, fs[s])
+                rows.append({"run_name": run, "run_id": run_id, "model": name, "features": s, "resampling": res,
                              **summarize(per_fold), **extra, "seconds": per_fold.attrs["seconds"]})
                 print(f"{run:32s} AUC {rows[-1]['auc_mean']:.4f}  KS {rows[-1]['ks_mean']:.4f}  "
                       f"thinAUC {rows[-1]['thin_auc_mean']:.4f}  {per_fold.attrs['seconds']}s")
     out = pd.DataFrame(rows)
-    out.round(5).to_csv(ROOT / cfg["outputs"]["comparison"], index=False)
+    log_best_per_algorithm(df, out, cfg, fs)
+    out.drop(columns="run_id").round(5).to_csv(ROOT / cfg["outputs"]["comparison"], index=False)
     return out
+
+
+def log_best_per_algorithm(train: pd.DataFrame, comparison: pd.DataFrame, cfg: dict, fs: dict) -> None:
+    """Refit each algorithm's best 'both' run on the full train set and log it as a model artifact
+    (with signature and input example) inside that run."""
+    y = train[cfg["target"]].to_numpy()
+    for name in cfg["model_names"]:
+        cand = comparison[(comparison["model"] == name) & (comparison["features"] == "both")]
+        best = pick_winner(cand, cfg)
+        feats = fs["both"]
+        est = make_estimator(name, feats, best["resampling"], cfg, y).fit(train[feats].astype(float), y)
+        use_experiment(cfg, name)
+        with mlflow.start_run(run_id=best["run_id"]):
+            mlflow.set_tag("best_of_algorithm", "true")
+            log_final_model(est, train[feats].astype(float).iloc[:5])
+        print(f"logged best {name} model artifact in run {best['run_name']}")
 
 
 def stage_monotonic(train, val, cfg, fs, comparison: pd.DataFrame) -> pd.DataFrame:
@@ -266,7 +308,7 @@ def stage_monotonic(train, val, cfg, fs, comparison: pd.DataFrame) -> pd.DataFra
             ci = ev.bootstrap_ci(lambda i: roc_auc_score(y_va[i], p_base[i]) - roc_auc_score(y_va[i], p_con[i]),
                                  len(y_va), bs["n"], bs["seed"])
             label = "full" if not dropped else "no-" + "-".join(d.lower()[:12] for d in dropped)
-            use_experiment(cfg, "monotonic")
+            use_experiment(cfg, name)
             with mlflow.start_run(run_name=f"{name}__both__{res}__mono-{label}"):
                 mlflow.set_tags({"step": "5", "stage": "monotonic", "owner": "wonbin", "evaluated_on": "validation"})
                 mlflow.log_params({"model": name, "feature_set": "both", "resampling": res, "monotone_set": label,
@@ -311,7 +353,10 @@ def monotonic_violations(est, X: pd.DataFrame, features, monotone, n_rows=300, n
 
 
 def log_final_model(est, example: pd.DataFrame) -> list[str]:
-    """Log the fitted model to the active MLflow run so pyfunc serves probabilities.
+    """Log a fitted model to the active MLflow run so pyfunc serves probabilities.
+
+    example: a few training rows of the model's feature columns; stored as input_example and
+    used for the signature, so the registry and FastAPI know the exact input schema.
 
     MLflow saves sklearn models with skops, which only loads listed types. The model was trained
     in this process, so its own classes (pipeline, booster, etc.) are listed as trusted.
@@ -401,12 +446,15 @@ def stage_final(train, val, test, cfg, fs, comparison, monotonic) -> dict:
     sc.to_csv(ROOT / cfg["outputs"]["test_scores"], index=False)
 
     violations = monotonic_violations(final_est, X_tv, feats, mono) if mono else {}
-    joblib.dump(final_est, ROOT / cfg["outputs"]["model"])
+    mpath = model_path(cfg, name)
+    joblib.dump(final_est, mpath)
 
     summary = {
         "winner": {"model": name, "resampling": res, "calibrated": calibrate,
                    "dropped_constraints": list(dropped),
                    "monotone": dict(zip(feats, mono)) if mono else None},
+        "model_version": cfg["model_version"],
+        "model_file": str(mpath.relative_to(ROOT)),
         "trained_on": "train+validation", "evaluated_on": "test",
         "split_rows": {k: int(v) for k, v in pd.Series(["train"] * len(train) + ["validation"] * len(val)
                                                        + ["test"] * len(test)).value_counts().items()},
@@ -438,7 +486,8 @@ def stage_final(train, val, test, cfg, fs, comparison, monotonic) -> dict:
                          "evaluated_on": "test"})
         mlflow.log_params({"model": name, "feature_set": "both", "resampling": res, "calibrated": calibrate,
                            "dropped_constraints": ",".join(dropped) or "none", "seed": cfg["seed"],
-                           "data_md5": data_md5(cfg),
+                           "data_md5": data_md5(cfg), "model_version": cfg["model_version"],
+                           "model_file": str(mpath.relative_to(ROOT)),
                            **{f"hp_{k}": v for k, v in cfg["models"][name].items()}})
         mlflow.log_metrics({f"test_{k}": float(v) for k, v in t.items() if isinstance(v, (int, float))})
         if mono_loss:

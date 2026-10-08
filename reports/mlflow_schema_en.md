@@ -4,57 +4,52 @@
 
 ## Where the runs are
 
-- Backend: SQLite at `mlruns/mlflow.db`, artifacts in `mlruns/artifacts/`. MLflow 3.16 no longer accepts the plain folder backend, and the model registry needs a database backend anyway. `mlruns/` is gitignored, so recreate it with `python -m src.train --stage all` (about 3 minutes, same results because everything is seeded).
-- Browse: `mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db`
-- In code: `mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")`
+- **Tracking location:** the environment variable `MLFLOW_TRACKING_URI`.
+  - **Unset, or a folder path** (as in `.env.example`, `./mlruns`): a local SQLite database `mlruns/mlflow.db`, with artifacts in `mlruns/artifacts/`, relative to the project root. MLflow 3.16 refuses the plain folder backend, which is why the folder holds a database.
+  - **A URI** (for example `http://mlflow:5000`): used as is; the server decides where artifacts go.
+- **Inside docker-compose:** set `MLFLOW_TRACKING_URI` to the compose MLflow server and **rerun training** (`python -m src.train --stage all`, about 3 minutes, seeded). Do not copy the local `mlruns/` folder into a container: its database stores **absolute** artifact paths from the machine where it was created, so the artifacts would not be found.
+- `mlruns/` is gitignored. Browse it locally with `mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db`.
 
-## Experiments and run names
+## Experiments and runs
 
 | Experiment | Runs | Run name pattern |
 |---|---|---|
-| `nextstep-model-comparison` | 27 | `{model}__{features}__{resampling}`, e.g. `xgb__both__none` |
-| `nextstep-monotonic` | 1 unconstrained + 1 or more constrained per boosting model | `{model}__both__{resampling}__mono-{set}`, set = `none`, `full`, or `no-<dropped features>` |
+| `nextstep-lr` | 9 comparison runs | `lr__{features}__{resampling}` |
+| `nextstep-lgbm` | 9 comparison runs + monotonic runs | `lgbm__...`, monotonic: `lgbm__both__{resampling}__mono-{set}` |
+| `nextstep-xgb` | 9 comparison runs + monotonic runs | `xgb__...`, monotonic: `xgb__both__{resampling}__mono-{set}` |
 | `nextstep-final` | 1 | `{model}__both__{resampling}__mono-{set}[__platt]__final`; currently `xgb__both__none__mono-full__final` |
+| `nextstep-audit` | audit runs (Step 7) | |
 
-Values: model = `lr`, `lgbm`, `xgb`. features = `gmsc`, `alt`, `both`. resampling = `none`, `class_weight`, `smote`.
+Values: features = `gmsc`, `alt`, `both`; resampling = `none`, `class_weight`, `smote`. Comparison runs use 5-fold CV inside the **train** split; monotonic runs are evaluated on **validation**; the final run is trained on train+validation and evaluated once on **test** (split defined by `data/processed/split.csv`).
 
-## Tags and params
+## Tags, params, metrics
 
-- Tags: `step=5`, `stage=compare|monotonic|final`, `owner=wonbin`
-- Params: `model`, `feature_set`, `resampling`, `monotone_set`, `seed`, `n_splits`, `sim_b` (simulator credit link), `data_md5` (first 8 characters of the training data hash), and every hyperparameter with prefix `hp_`. Monotonic runs add `dropped_constraints`. The final run adds `calibrated`.
+- Tags: `step`, `stage` (compare / monotonic / final), `owner=wonbin`; the best run per algorithm has `best_of_algorithm=true`; the final run has `trained_on=train+validation`, `evaluated_on=test`.
+- Params: `model`, `feature_set`, `resampling`, `monotone_set`, `seed`, `n_splits`, `sim_b`, `data_md5`, hyperparameters with prefix `hp_`; the final run adds `model_version`, `model_file`, `calibrated`.
+- Comparison runs: per fold (`step` = fold) `auc`, `ks`, `thin_auc`, `psi`, `brier`, `precision`, `recall`, `f1`, and `*_mean` / `*_std` of each; `both` runs add `thin_auc_gain_mean/std`.
+- Monotonic runs: `val_auc_unconstrained`, `val_auc_constrained`, `mono_auc_loss` with `mono_auc_loss_ci_low/high`.
+- Final run: `test_auc`, `test_ks`, `test_thin_auc`, `test_thin_auc_lift`, `test_psi_trainval_vs_test`, `test_brier`, `test_precision`, `test_recall`, `test_f1`, `mono_auc_loss`, `approval_rate`, `approval_rate_thin`.
+- Precision, recall and F1 treat **default as the positive class**, with "predicted default" = rejected by the fixed score-475 rule in `config/scoring.yaml`.
 
-## Metric keys (constants in `src/evaluate.py`)
+## Model artifacts
 
-| Key | Meaning |
-|---|---|
-| `auc`, `ks`, `thin_auc`, `psi`, `brier` | Per fold, logged with `step` = fold number (0 to 4) |
-| `auc_mean`, `auc_std`, `ks_mean`, `ks_std`, `thin_auc_mean`, `thin_auc_std`, `psi_mean`, `psi_std`, `brier_mean`, `brier_std` | Mean and SD over the 5 folds |
-| `thin_auc_gain_mean`, `thin_auc_gain_std` | Thin-filer AUC of `both` minus `gmsc`, paired by fold (only on `both` runs and the final run) |
-| `mono_auc_loss` | Unconstrained AUC minus constrained AUC (monotonic and final runs) |
-| `approval_rate`, `approval_rate_thin` | Final run only, using `config/scoring.yaml` |
-
-## Artifacts
-
-- Every run: `per_fold_metrics.csv`, `features.json`. Constrained runs: `monotone.json`.
-- Final run: `model/` (MLflow sklearn model), `final_summary.json`, `grade_table.csv`, `scoring.yaml`, `actionability.yaml`.
-
-## Using the final model
+- **Per algorithm:** the best `both` run of each algorithm holds a model artifact, refit on the full train split.
+- **Final:** the final run holds the shipped model (also saved as `models/xgboost_v1.0.joblib`, model version 1.0).
+- Every artifact has a **signature** (21 input columns, output = 2 probability columns) and an **input_example** (5 training rows of the feature columns).
+- pyfunc serves `predict_proba`, not class labels; column 1 is the PD.
+- MLflow saves with skops; the model's own classes are listed as trusted at save time (imblearn.pipeline.Pipeline, numpy.dtype, xgboost.core.Booster, xgboost.sklearn.XGBClassifier).
 
 ```python
 import mlflow
-mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")
-model = mlflow.pyfunc.load_model("runs:/0540be4848544f999d99bf1ea413008d/model")
-proba = model.predict(X)      # shape (n, 2); column 1 = probability of default
-pd_ = proba[:, 1]
+mlflow.set_tracking_uri("sqlite:///mlruns/mlflow.db")      # or the compose server
+model = mlflow.pyfunc.load_model("runs:/ab9fa56de2ee43f0823ce56096a9457b/model")
+example = model.input_example                                 # DataFrame with the 21 columns
+pd_ = model.predict(example)[:, 1]                            # probability of default
 ```
 
-- The pyfunc serves `predict_proba` (set with `pyfunc_predict_fn`), not class labels. Column 1 is the PD.
-- To turn PD into score, grade and approval, use `src/scoring.py` with `config/scoring.yaml` (`score_frame(pd_)`).
-- MLflow saves the model with skops. Its own classes are listed as trusted at save time (`imblearn.pipeline.Pipeline, numpy.dtype, xgboost.core.Booster, xgboost.sklearn.XGBClassifier`).
-- The same fitted model is also saved as `models/final_model.joblib`.
-- The run ID changes every time training is rerun. Find the final run by experiment `nextstep-final` and tag `stage=final`, not by a fixed ID.
+The run id changes on every retraining; find the final run by experiment `nextstep-final` and tag `stage=final`. Turn PD into score, grade and approval with `src/scoring.py` and `config/scoring.yaml`. The Model Registry (Production / Staging) is 윤제진's part.
 
-## Input columns (21, this order, all numeric; missing values allowed as NaN)
+## Input columns (21, this order, all numeric; NaN allowed)
 
 1. `RevolvingUtilizationOfUnsecuredLines`
 2. `age`
@@ -78,4 +73,4 @@ pd_ = proba[:, 1]
 20. `regular_payment_count`
 21. `app_login_frequency`
 
-The pipeline does its own median imputation, so NaN is fine. Gender is not an input.
+`autopay_ratio` and `gender_female` are in the dataset but are not model inputs.

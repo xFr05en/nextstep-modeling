@@ -50,5 +50,13 @@ def _load_model(path: Path):
     return joblib.load(path)
 
 
+def final_model_path() -> Path:
+    """Versioned final model file named in reports/final_summary.json (e.g. models/xgboost_v1.0.joblib)."""
+    import json
+
+    summary = require(ROOT / load_yaml("train.yaml")["outputs"]["final_summary"])
+    return ROOT / json.loads(summary.read_text())["model_file"]
+
+
 def final_model():
-    return _load_model(require(ROOT / load_yaml("train.yaml")["outputs"]["model"]))
+    return _load_model(require(final_model_path()))

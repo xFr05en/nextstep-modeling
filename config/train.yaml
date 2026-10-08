@@ -9,6 +9,9 @@ data: data/processed/gmsc_sim.csv
 target: SeriousDlqin2yrs
 thin_col: thin_filer
 model_names: [lr, lgbm, xgb]
+# Model file names: models/{full_name}_v{model_version}.joblib  (e.g. models/xgboost_v1.0.joblib)
+model_version: "1.0"
+model_full_names: {lr: logistic_regression, lgbm: lightgbm, xgb: xgboost}
 feature_sets: [gmsc, alt, both]
 resampling: [none, class_weight, smote]
 # Fixed hyperparameters (no per-run tuning, so the grid compares methods, not tuning effort)
@@ -31,11 +34,15 @@ monotonic:
 calibration: {method: sigmoid, cv: 3}
 bootstrap: {n: 500, seed: 42}           # 95% CIs on validation and test metrics
 mlflow:
-  tracking_dir: mlruns                  # SQLite db + artifacts inside mlruns/ (gitignored)
-  experiments:
-    compare: nextstep-model-comparison
-    monotonic: nextstep-monotonic
+  # Tracking URI: env var MLFLOW_TRACKING_URI if set (e.g. the docker-compose MLflow server),
+  # else a local SQLite db + artifacts in ./mlruns (gitignored, relative to the project root).
+  tracking_dir: mlruns
+  experiments:                          # one experiment per algorithm, plus final and audit
+    lr: nextstep-lr
+    lgbm: nextstep-lgbm
+    xgb: nextstep-xgb
     final: nextstep-final
+    audit: nextstep-audit
 outputs:
   comparison: reports/model_comparison.csv
   monotonic: reports/monotonic_results.csv
@@ -43,4 +50,4 @@ outputs:
   grade_table: reports/grade_table.csv
   split: data/processed/split.csv
   test_scores: data/processed/final_test_scores.csv
-  model: models/final_model.joblib
+  model: "models/{full_name}_v{version}.joblib"

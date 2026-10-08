@@ -7,6 +7,9 @@ Sex (from attribute 9) and foreign worker are never model features; they are kep
 Encoding and scaling are pipeline steps, so they are fit on training folds only.
 
 Run:  python -m src.german
+
+Note: this model is not saved to models/. If it ever is, use the versioned name rule from
+config/train.yaml, e.g. models/german_xgboost_v1.0.joblib.
 """
 from __future__ import annotations
 

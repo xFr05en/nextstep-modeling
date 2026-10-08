@@ -92,7 +92,7 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 | `src/` | `data.py`, `simulator.py`, `features.py`, `train.py`, `evaluate.py`, `scoring.py`, `actionability_table.py` |
 | `notebooks/` | 보고서·그림 스크립트 (`src/`는 이것에 의존하지 않음) |
 | `tests/` | pytest 테스트 |
-| `models/` | `final_model.joblib` |
+| `models/` | `xgboost_v1.0.joblib` (버전 포함: `{알고리즘}_v{model_version}.joblib`, 버전은 `config/train.yaml`) |
 | `reports/` | 단계별 보고서 (한국어, 영어), 그림, 결과표, 조치 가능성 Excel |
 | `mlruns/` | MLflow 기록 (SQLite, 커밋하지 않음, `src.train`으로 다시 생성) |
 
@@ -117,7 +117,7 @@ Dockerfile에서는 `ENV REQUIRE_DATA=1`, GitHub Actions에서는 테스트 단�
 - `config/actionability.yaml`: DiCE가 바꿀 수 있는 변수(`dice_vary`), 방향, 단위, 허용 범위, 난이도, 단계당 개월. 같은 내용이 Excel에도 있습니다.
 - 경로 목표: `config/scoring.yaml`의 `recourse_target_score` = 495. 승인 자체는 등급 A~C (점수 475 이상)로 유지하며, 20점 여유는 모델을 재학습해도 경로가 승인되도록 하기 위함입니다 (`reports/audit_report_ko.md` 참고). PD를 점수, 등급, 승인으로 바꿀 때 `src/scoring.py`를 사용합니다.
 - 자동이체는 모델 변수지만 경로에는 쓰지 않습니다: 분류 권장 불가(NOT_RECOMMENDED), `dice_vary: false`, 단조 -1. SHAP 거절 사유에서는 자동이체를 조치 가능 항목이 아니라 "참고(변경 불가)"에 표시하여, 설명이 자동이체 설정을 권하지 않도록 하십시오.
-- 모델: `models/final_model.joblib`, 입력 열 19개를 DataFrame으로 받는 파이프라인. `predict_proba[:, 1]`이 PD입니다.
+- 모델: `models/xgboost_v1.0.joblib`, 입력 열 21개를 DataFrame으로 받는 파이프라인. `predict_proba[:, 1]`이 PD입니다.
 - 공정성 입력: `gender_female`(시뮬레이션, 보호 속성, 모델 변수 아님), `age`(보호 속성, 모델 변수로 사용). 연령은 사용률, 부양가족 수와 관련됩니다 (EDA와 시뮬레이터 보고서 참고).
 - 실제 성별 점검: `reports/german/oof_predictions.csv`에 German Credit 신청자 1,000명의 out-of-fold PD (XGBoost, LR), 실제 결과, 성별, 연령, 혼인 상태, 외국인 노동자 여부가 있습니다. 기준점은 적용하지 않았으며, UCI 비용 행렬 (손익분기 PD 약 0.167)은 `reports/german_report_ko.md`를 참고하십시오.
 

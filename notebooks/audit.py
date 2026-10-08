@@ -1,6 +1,6 @@
 """Audit of the Step 5 model: recourse, fairness, stability, holdout, sensitivity.
 
-Changes nothing: configs, models/final_model.joblib and the Step 5 MLflow runs stay as they are.
+Changes nothing: configs, the versioned final model file and the training MLflow runs stay as they are.
 Outputs go to reports/audit/ and the MLflow experiment `nextstep-audit`.
 
 Run from the project root:  python notebooks/audit.py   (about 6 minutes)
@@ -465,7 +465,7 @@ def main() -> None:
     t0 = time.time()
     sim = pd.read_csv(ROOT / CFG["data"])
     clean = pd.read_csv(ROOT / load_yaml("data.yaml")["processed_path"])
-    deployed = joblib.load(ROOT / CFG["outputs"]["model"])
+    deployed = joblib.load(ROOT / json.loads((ROOT / CFG["outputs"]["final_summary"]).read_text())["model_file"])
 
     recourse, paths = check_recourse(sim, deployed)
     save("1_recourse", recourse)
